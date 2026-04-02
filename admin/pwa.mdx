@@ -1,0 +1,100 @@
+---
+title: 'Progressive Web App (PWA)'
+description: 'Install TREK as a native app on iOS and Android directly from the browser.'
+---
+
+TREK is a Progressive Web App (PWA). This means you can install it on your phone or tablet directly from the browser — no App Store or Play Store required. Once installed, it launches fullscreen with its own icon, just like a native app.
+
+## Requirements
+
+TREK's PWA features require **HTTPS**. The browser will not offer the install prompt over plain HTTP.
+
+<Note>
+  If you're accessing TREK over a local network without a certificate, PWA installation will not be available. Use a reverse proxy with TLS for production deployments.
+</Note>
+
+## Installing TREK on your device
+
+<Tabs>
+  <Tab title="iOS (Safari)">
+    <Steps>
+      <Step title="Open TREK in Safari">
+        Navigate to your TREK instance URL in Safari on your iPhone or iPad.
+      </Step>
+      <Step title="Tap the Share button">
+        Tap the **Share** button at the bottom of the screen (the square with an arrow pointing up).
+      </Step>
+      <Step title="Add to Home Screen">
+        Scroll down in the share sheet and tap **Add to Home Screen**.
+      </Step>
+      <Step title="Confirm">
+        Edit the name if you like, then tap **Add**. TREK appears on your home screen with its own icon.
+      </Step>
+    </Steps>
+
+    <Note>
+      iOS PWA installation is only available in Safari. Chrome and other browsers on iOS do not support the Add to Home Screen flow for PWAs.
+    </Note>
+  </Tab>
+  <Tab title="Android (Chrome)">
+    <Steps>
+      <Step title="Open TREK in Chrome">
+        Navigate to your TREK instance URL in Chrome on your Android device.
+      </Step>
+      <Step title="Open the menu">
+        Tap the three-dot menu in the top-right corner.
+      </Step>
+      <Step title="Install the app">
+        Tap **Install app** or **Add to Home Screen** (the option name varies by Chrome version). Chrome may also show an install banner automatically at the bottom of the screen.
+      </Step>
+      <Step title="Confirm">
+        Tap **Install** in the confirmation dialog. TREK is added to your home screen and app drawer.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Offline support
+
+TREK uses a Service Worker powered by **Workbox** to cache content for offline use. After your first visit, the following are available without an internet connection:
+
+<CardGroup cols={2}>
+  <Card title="Static assets" icon="file">
+    JavaScript, CSS, fonts, and icons are cached on first load and served from cache on subsequent visits.
+  </Card>
+  <Card title="Map tiles" icon="map">
+    Recently viewed map tiles are cached so your trip maps load even offline.
+  </Card>
+  <Card title="API data" icon="database">
+    Trip data fetched from the API is cached and available when the server is unreachable.
+  </Card>
+  <Card title="Uploads" icon="image">
+    Uploaded files (photos, attachments) that have been viewed are cached for offline access.
+  </Card>
+</CardGroup>
+
+<Note>
+  Offline support covers recently accessed content. Data that has never been loaded in your browser will not be available offline.
+</Note>
+
+## Native app features
+
+When launched from the home screen, TREK runs in **standalone mode** — the browser UI (address bar, tabs) is hidden and TREK fills the full screen. Additional native-like features include:
+
+- **Custom app icon** — uses TREK's branded icon on the home screen and in the app switcher
+- **Themed status bar** — the status bar color matches TREK's theme and updates with dark/light mode
+- **Splash screen** — displays TREK's icon while the app loads
+- **Safe area handling** — layout respects the device's notch, home indicator, and other system UI insets
+
+## Touch-optimized UI
+
+TREK's interface is designed for touch devices:
+
+- Fully **responsive layout** that adapts from mobile to desktop
+- **Mobile-specific layouts** for key screens (trip planner, map, packing list)
+- Touch-friendly tap targets and swipe interactions
+- Proper handling of on-screen keyboard insets
+
+## Admin configuration
+
+No additional configuration is needed to enable PWA functionality. TREK ships with a pre-configured Web App Manifest and Service Worker. As long as your instance is served over HTTPS, the install prompt will be available automatically.

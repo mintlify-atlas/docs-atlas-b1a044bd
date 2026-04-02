@@ -1,0 +1,171 @@
+---
+title: 'User management'
+description: 'Manage users, roles, invite links, and permissions from the Admin Panel.'
+---
+
+## Admin Panel overview
+
+The first user to register on a fresh TREK instance is automatically granted the `admin` role. Subsequent registrations create regular `user` accounts.
+
+Once logged in as an admin, open the Admin Panel from the main navigation menu. From here you can manage users, invite links, global categories, permissions, backups, and more.
+
+## User list
+
+The user list shows every account on your instance with:
+
+- **Username** and email address
+- **Online status** — a live indicator powered by WebSocket presence
+- **Last login** timestamp
+- **Role** badge (`admin` or `user`)
+
+## Creating users
+
+Admins can create accounts directly without requiring an invite link.
+
+<Steps>
+  <Step title="Open the Admin Panel">
+    Navigate to the Admin Panel from the main menu.
+  </Step>
+  <Step title="Go to Users">
+    Select the **Users** section.
+  </Step>
+  <Step title="Fill in the form">
+    Enter a username, email address, password, and optionally select a role. The password must meet the [password policy](#password-policy).
+  </Step>
+  <Step title="Save">
+    Click **Create user**. The account is immediately active.
+  </Step>
+</Steps>
+
+## User roles
+
+TREK has two roles:
+
+<CardGroup cols={2}>
+  <Card title="user" icon="user">
+    Standard account. Can create and join trips (subject to permission settings), manage their own profile, and use all trip features.
+  </Card>
+  <Card title="admin" icon="shield">
+    Full access to the Admin Panel. Can manage all users, change instance-wide settings, create invite links, and perform backups. Admins always bypass trip permission checks.
+  </Card>
+</CardGroup>
+
+You can change a user's role at any time from the user edit form in the Admin Panel.
+
+## Invite links
+
+Invite links let users self-register without open registration. Each link is a unique token that can be shared directly.
+
+<Steps>
+  <Step title="Open Invite Links">
+    In the Admin Panel, navigate to **Invite Links**.
+  </Step>
+  <Step title="Configure the link">
+    Set an optional **max uses** (1–5) and an optional **expiry** (in days). Leave max uses at 0 for unlimited uses.
+  </Step>
+  <Step title="Create and share">
+    Click **Create**. Copy the generated link and send it to the person you want to invite. They register with their own username, email, and password — no admin action needed to activate their account.
+  </Step>
+</Steps>
+
+<Note>
+  Invite links bypass the instance's registration restriction (`allow_registration`). A valid invite token always allows registration even if open sign-ups are disabled.
+</Note>
+
+You can delete any invite link from the list to invalidate it immediately.
+
+## Resetting a user's password
+
+<Steps>
+  <Step title="Find the user">
+    Open the **Users** list and click the edit icon next to the target user.
+  </Step>
+  <Step title="Enter a new password">
+    Type the new password in the **Password** field. It must satisfy the [password policy](#password-policy).
+  </Step>
+  <Step title="Save">
+    Click **Save**. The change takes effect immediately. Existing sessions for that user remain valid until they expire.
+  </Step>
+</Steps>
+
+## Deleting users
+
+Click the delete icon next to a user in the user list. The action is permanent and cannot be undone.
+
+<Warning>
+  Admins cannot delete their own account. You must promote another user to admin first, then have them remove the original account.
+</Warning>
+
+## Password policy
+
+Every password — whether set during registration, created by an admin, or reset — must pass the following checks:
+
+- At least **8 characters** long
+- Contains at least one **uppercase** letter (`A–Z`)
+- Contains at least one **lowercase** letter (`a–z`)
+- Contains at least one **number** (`0–9`)
+- Contains at least one **special character** (any non-alphanumeric character)
+- Is not a **common password** (e.g. `password123`, `admin1234`)
+- Is not entirely **repetitive** (e.g. `aaaaaaaa`)
+
+## Global categories
+
+Global categories define the place categories available across all trips on the instance. Admins can add, edit, and delete categories from **Admin Panel → Categories**.
+
+Categories created here appear as options when users add places to their trips.
+
+## Permission system
+
+The permission system controls which role level is required to perform specific actions within a trip. Admins can adjust these from **Admin Panel → Permissions**.
+
+<AccordionGroup>
+  <Accordion title="Permission levels">
+    Levels are hierarchical — higher levels include all lower ones:
+
+    | Level | Description |
+    |---|---|
+    | `admin` | Instance administrators only |
+    | `trip_owner` | The user who created the trip |
+    | `trip_member` | Any member of the trip (owner or invited member) |
+    | `everybody` | Any authenticated user |
+
+    Admins always pass all permission checks regardless of the configured level.
+  </Accordion>
+  <Accordion title="Configurable actions">
+    | Action | Default | Options |
+    |---|---|---|
+    | `trip_create` | `everybody` | `admin`, `everybody` |
+    | `trip_edit` | `trip_owner` | `trip_owner`, `trip_member` |
+    | `trip_delete` | `trip_owner` | `admin`, `trip_owner` |
+    | `trip_archive` | `trip_owner` | `trip_owner`, `trip_member` |
+    | `trip_cover_upload` | `trip_owner` | `trip_owner`, `trip_member` |
+    | `member_manage` | `trip_owner` | `admin`, `trip_owner`, `trip_member` |
+    | `file_upload` | `trip_member` | `admin`, `trip_owner`, `trip_member` |
+    | `file_edit` | `trip_member` | `trip_owner`, `trip_member` |
+    | `file_delete` | `trip_member` | `trip_owner`, `trip_member` |
+    | `place_edit` | `trip_member` | `trip_owner`, `trip_member` |
+    | `budget_edit` | `trip_member` | `trip_owner`, `trip_member` |
+    | `packing_edit` | `trip_member` | `trip_owner`, `trip_member` |
+    | `reservation_edit` | `trip_member` | `trip_owner`, `trip_member` |
+    | `day_edit` | `trip_member` | `trip_owner`, `trip_member` |
+    | `collab_edit` | `trip_member` | `trip_owner`, `trip_member` |
+    | `share_manage` | `trip_owner` | `trip_owner`, `trip_member` |
+  </Accordion>
+</AccordionGroup>
+
+## Language settings
+
+TREK is fully multilingual. Users can switch the interface language from their profile settings. The following languages are available:
+
+| Code | Language |
+|---|---|
+| `en` | English |
+| `de` | German |
+| `es` | Spanish |
+| `fr` | French |
+| `ru` | Russian |
+| `zh` | Chinese (Simplified) |
+| `nl` | Dutch |
+| `ar` | Arabic (with RTL layout support) |
+
+No admin configuration is required — language selection is per-user.

@@ -1,0 +1,151 @@
+---
+title: "Single Sign-On (OIDC)"
+description: "Configure SSO with Google, Apple, Keycloak, Authentik, or any OIDC provider."
+---
+
+TREK supports Single Sign-On via OpenID Connect (OIDC). Once configured, users can log in with their existing identity provider account. OIDC can run alongside local authentication or replace it entirely with `OIDC_ONLY` mode.
+
+## How it works
+
+1. A user clicks the SSO button on the login page.
+2. TREK redirects to your identity provider's authorization endpoint (discovered automatically from `OIDC_ISSUER`).
+3. After the user authenticates, the provider redirects back to TREK's callback URL.
+4. TREK exchanges the authorization code for tokens, fetches the user's profile, and creates or updates the user record.
+
+The redirect URI TREK registers with your provider is:
+
+```
+{APP_URL}/api/auth/oidc/callback
+```
+
+For example: `https://trek.example.com/api/auth/oidc/callback`
+
+## Required variables
+
+Set these four variables to enable OIDC:
+
+| Variable | Description |
+|---|---|
+| `APP_URL` | Public base URL of your TREK instance. Must match the redirect URI registered with your IdP. |
+| `OIDC_ISSUER` | Your OIDC provider's base URL. TREK fetches `{OIDC_ISSUER}/.well-known/openid-configuration` to discover endpoints. |
+| `OIDC_CLIENT_ID` | Client ID from your identity provider. |
+| `OIDC_CLIENT_SECRET` | Client secret from your identity provider. Stored encrypted at rest. |
+
+## Optional variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `OIDC_DISPLAY_NAME` | `SSO` | Label shown on the SSO login button in the TREK UI. |
+| `OIDC_ONLY` | `false` | Disable local password auth entirely. Only SSO login is available. |
+| `OIDC_ADMIN_CLAIM` | `groups` | OIDC claim used to identify admin users. |
+| `OIDC_ADMIN_VALUE` | — | The value of `OIDC_ADMIN_CLAIM` that grants admin role. |
+| `OIDC_DISCOVERY_URL` | — | Override the auto-constructed discovery endpoint for non-standard providers. |
+
+## Provider setup
+
+<Tabs>
+  <Tab title="Google">
+    1. Open the [Google Cloud Console](https://console.cloud.google.com/) and select or create a project.
+    2. Go to **APIs & Services** → **Credentials** → **Create credentials** → **OAuth client ID**.
+    3. Set the application type to **Web application**.
+    4. Under **Authorized redirect URIs**, add `{APP_URL}/api/auth/oidc/callback`.
+    5. Copy the **Client ID** and **Client secret**.
+
+    ```yaml
+    environment:
+      - APP_URL=https://trek.example.com
+      - OIDC_ISSUER=https://accounts.google.com
+      - OIDC_CLIENT_ID=<your-client-id>.apps.googleusercontent.com
+      - OIDC_CLIENT_SECRET=<your-client-secret>
+      - OIDC_DISPLAY_NAME=Google
+    ```
+  </Tab>
+  <Tab title="Keycloak / Authentik">
+    **Keycloak**
+
+    1. In your Keycloak realm, go to **Clients** → **Create client**.
+    2. Set **Client ID** and enable **Client authentication**.
+    3. Under **Valid redirect URIs**, add `{APP_URL}/api/auth/oidc/callback`.
+    4. Copy the client secret from the **Credentials** tab.
+
+    ```yaml
+    environment:
+      - APP_URL=https://trek.example.com
+      - OIDC_ISSUER=https://keycloak.example.com/realms/your-realm
+      - OIDC_CLIENT_ID=trek
+      - OIDC_CLIENT_SECRET=<your-client-secret>
+      - OIDC_DISPLAY_NAME=Keycloak
+    ```
+
+    **Authentik**
+
+    Authentik exposes the discovery endpoint at a non-standard path. Use `OIDC_DISCOVERY_URL` to point TREK to the correct endpoint.
+
+    1. In Authentik, create an **OAuth2/OpenID Provider** and an **Application** for TREK.
+    2. Set the redirect URI to `{APP_URL}/api/auth/oidc/callback`.
+    3. Copy the **Client ID** and **Client secret**.
+
+    ```yaml
+    environment:
+      - APP_URL=https://trek.example.com
+      - OIDC_ISSUER=https://auth.example.com
+      - OIDC_CLIENT_ID=trek
+      - OIDC_CLIENT_SECRET=<your-client-secret>
+      - OIDC_DISPLAY_NAME=Authentik
+      - OIDC_DISCOVERY_URL=https://auth.example.com/application/o/trek/.well-known/openid-configuration
+    ```
+  </Tab>
+  <Tab title="Generic OIDC">
+    Any provider that implements the OpenID Connect specification works with TREK. You need:
+
+    - The issuer URL (the base URL from which `/.well-known/openid-configuration` is reachable, or use `OIDC_DISCOVERY_URL` to override)
+    - A client ID and client secret
+    - The redirect URI registered: `{APP_URL}/api/auth/oidc/callback`
+
+    ```yaml
+    environment:
+      - APP_URL=https://trek.example.com
+      - OIDC_ISSUER=https://sso.example.com
+      - OIDC_CLIENT_ID=trek
+      - OIDC_CLIENT_SECRET=<your-client-secret>
+      - OIDC_DISPLAY_NAME=My SSO
+    ```
+
+    TREK requests the `openid email profile` scopes. Your provider must return at minimum a `sub` and `email` in the userinfo response.
+  </Tab>
+</Tabs>
+
+## Admin role via OIDC claims
+
+You can automatically grant the admin role to users based on an OIDC claim — for example, a `groups` claim set by your provider.
+
+Set both variables to enable claim-based role mapping:
+
+```yaml
+environment:
+  - OIDC_ADMIN_CLAIM=groups
+  - OIDC_ADMIN_VALUE=app-trek-admins
+```
+
+With this configuration, any user whose `groups` claim contains `app-trek-admins` receives the admin role in TREK. The role is re-evaluated on every login, so changes in your IdP take effect the next time the user logs in.
+
+`OIDC_ADMIN_CLAIM` supports both array values (`["app-trek-admins", "other-group"]`) and string values (`"app-trek-admins"`).
+
+<Note>
+  The first user to register on a fresh TREK install always becomes admin, regardless of claim mapping.
+</Note>
+
+## OIDC-only mode
+
+Set `OIDC_ONLY=true` to disable local username/password authentication entirely. Users can only log in via SSO.
+
+```yaml
+environment:
+  - OIDC_ONLY=true
+```
+
+When `OIDC_ONLY` is enabled, the local login form is hidden and the password reset flow is disabled. The first user to log in via SSO on a fresh install becomes the admin.
+
+<Warning>
+  Enabling `OIDC_ONLY` before verifying that SSO works correctly will lock all users out of local login. Test SSO with local auth still enabled before switching to `OIDC_ONLY=true`.
+</Warning>

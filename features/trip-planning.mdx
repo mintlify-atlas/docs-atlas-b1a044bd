@@ -1,0 +1,109 @@
+---
+title: 'Trip Planning'
+description: 'Organize your itinerary with drag-and-drop day planning, place search, and route optimization.'
+---
+
+TREK's planner organizes your trip into days, lets you search for places, drag them into your schedule, and export optimized routes — all in one view.
+
+## Creating a trip
+
+<Steps>
+  <Step title="Open the trips dashboard">
+    From the home screen, click **New Trip**.
+  </Step>
+  <Step title="Fill in trip details">
+    Provide a title, optional description, start and end dates, and the trip's default currency. You can also upload a cover image (JPG, PNG, GIF, or WebP, up to 20 MB).
+  </Step>
+  <Step title="Save">
+    TREK generates one day per calendar date between your start and end dates. Trips without dates default to 7 blank days. The maximum trip length is **365 days**.
+  </Step>
+</Steps>
+
+<Note>
+  You can update the title, dates, currency, and cover image at any time from the trip settings panel.
+</Note>
+
+## Drag-and-drop planner
+
+The planner displays each day as a column. Places you've added to the trip appear in the sidebar and can be dragged into any day.
+
+- **Reorder within a day** — drag a place card up or down to change visit order.
+- **Move between days** — drag a place card from one day column to another.
+- **Unassign** — drag a place back to the unscheduled sidebar.
+
+## Place search
+
+<CardGroup cols={2}>
+  <Card title="OpenStreetMap (free)" icon="map">
+    Searches via Nominatim. No API key required. Returns name, address, and coordinates. Available on all TREK instances out of the box.
+  </Card>
+  <Card title="Google Places" icon="star">
+    Returns photos, star ratings, opening hours, phone numbers, and website links. Requires a Google Places API (New) key configured in the Admin Panel.
+  </Card>
+</CardGroup>
+
+TREK automatically uses Google Places when a key is configured and falls back to OpenStreetMap otherwise.
+
+### Assigning places to days
+
+After adding a place to your trip you can:
+
+- Drag it into a specific day column in the planner.
+- Set a **start time** and **end time** directly on the place card.
+
+## Day notes
+
+Each day supports timestamped notes with selectable icons. Notes can be reordered by dragging, making them useful for quick reminders, meeting points, or reservation details that don't belong to a specific place.
+
+## Day title naming
+
+Click the day header in the planner to rename it (for example, "Travel day" or "Free afternoon"). The date is always shown alongside the custom title.
+
+## Route optimization
+
+TREK can reorder the places in a day to minimize travel time.
+
+<Steps>
+  <Step title="Open a day">
+    Select a day in the planner that has at least two places assigned.
+  </Step>
+  <Step title="Optimize">
+    Click **Optimize route**. TREK reorders the places using a nearest-neighbor algorithm.
+  </Step>
+  <Step title="Export to Google Maps">
+    Click **Open in Google Maps** to open the optimized route in Google Maps with all stops pre-loaded as waypoints.
+  </Step>
+</Steps>
+
+## Reservations
+
+The Reservations panel tracks bookings associated with your trip.
+
+<AccordionGroup>
+  <Accordion title="Supported reservation types">
+    - **Flight** — airline, flight number, departure and arrival airports
+    - **Hotel** — check-in/check-out dates, linked accommodation spanning multiple days
+    - **Restaurant** — dining reservation with time and location
+    - **Train** — rail bookings with departure and arrival details
+    - **Car** — car rental pick-up and drop-off
+    - **Cruise** — cruise booking with port details
+    - **Event** — concerts, shows, and ticketed events
+    - **Tour** — guided tour or excursion
+    - **Activity** — adventures, sports, and experiences
+    - **Other** — any booking that doesn't fit the above categories
+  </Accordion>
+  <Accordion title="What you can record">
+    Each reservation stores a title, date and time, location, confirmation number, notes, and status (pending, confirmed, cancelled). You can attach files such as e-tickets directly to a reservation.
+  </Accordion>
+  <Accordion title="Linking to days and places">
+    Reservations can be linked to a specific day and to a place already in your trip, so they appear in context in the planner view.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  Hotel reservations can automatically create an accommodation record that spans multiple days, showing where you're staying on the day view.
+</Tip>
+
+## Map features
+
+For the interactive map, place clustering, and category filters, see [Maps & Weather](/features/maps-weather).

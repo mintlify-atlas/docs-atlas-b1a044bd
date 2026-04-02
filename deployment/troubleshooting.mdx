@@ -1,0 +1,155 @@
+---
+title: "Troubleshooting"
+description: Diagnose and fix common issues with TREK deployment and configuration.
+---
+
+## Enabling verbose logs
+
+Set `LOG_LEVEL=debug` in your environment to get detailed request and error output:
+
+```bash
+# .env
+LOG_LEVEL=debug
+```
+
+Then restart TREK. Logs are written to `./data/logs/trek.log` and to stdout.
+
+## Health check
+
+You can verify the server is responding with:
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+A healthy instance returns HTTP 200.
+
+---
+
+<AccordionGroup>
+  <Accordion title="WebSocket connection fails / real-time sync not working">
+    TREK uses WebSockets for real-time collaboration. The connection is established at the `/ws` path.
+
+    **Cause**: Your reverse proxy is not forwarding WebSocket upgrade headers.
+
+    **Fix**: Configure your proxy to support WebSocket upgrades on `/ws`. For Nginx, add a dedicated `location /ws` block:
+
+    ```nginx
+    location /ws {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 86400;
+    }
+    ```
+
+    Caddy handles WebSocket upgrades automatically with no additional configuration. For nginx-ingress on Kubernetes, set the `proxy-read-timeout` and `proxy-send-timeout` annotations to at least `3600`.
+
+    See [Reverse Proxy](/configuration/reverse-proxy) for full proxy configuration examples.
+  </Accordion>
+
+  <Accordion title="Cannot install TREK as a PWA">
+    **Cause**: Progressive Web Apps require a secure context. The browser will not offer the "Add to Home Screen" / "Install app" option over plain HTTP.
+
+    **Fix**:
+    1. Serve TREK over HTTPS via a reverse proxy. See [Reverse Proxy](/configuration/reverse-proxy).
+    2. If `COOKIE_SECURE` is set to `false`, set it back to `true` (the default) once HTTPS is in place.
+
+    On iOS, use the Share button → "Add to Home Screen". On Android, use the browser menu → "Install app".
+  </Accordion>
+
+  <Accordion title="SSO / OIDC redirect fails or returns an error">
+    **Cause 1**: `APP_URL` is not set or does not match the redirect URI registered with your identity provider.
+
+    **Fix**: Set `APP_URL` to the exact base URL of your TREK instance (e.g. `https://trek.yourdomain.com`). This must match what you registered as the redirect URI with your IdP. TREK constructs the callback URL as `${APP_URL}/api/auth/oidc/callback`.
+
+    **Cause 2**: Your provider exposes the OIDC discovery document at a non-standard path (common with Authentik).
+
+    **Fix**: Set `OIDC_DISCOVERY_URL` to the full path of your provider's OpenID configuration endpoint. For Authentik:
+
+    ```bash
+    OIDC_DISCOVERY_URL=https://auth.example.com/application/o/trek/.well-known/openid-configuration
+    ```
+  </Accordion>
+
+  <Accordion title="Session cookies not being set / users logged out immediately">
+    **Cause 1**: `COOKIE_SECURE` defaults to `true` in production mode. Browsers will not send secure cookies over plain HTTP.
+
+    **Fix**: If you are accessing TREK over plain HTTP (e.g. via IP address without HTTPS), set:
+
+    ```bash
+    COOKIE_SECURE=false
+    ```
+
+    This is not recommended for production deployments with real user data.
+
+    **Cause 2**: Cross-origin requests are being blocked because `ALLOWED_ORIGINS` does not include your frontend origin.
+
+    **Fix**: Set `ALLOWED_ORIGINS` to a comma-separated list of your allowed origins:
+
+    ```bash
+    ALLOWED_ORIGINS=https://trek.yourdomain.com
+    ```
+  </Accordion>
+
+  <Accordion title="Uploaded files are not persisted after restart">
+    **Cause**: The `./uploads` directory is not mounted as a volume. Uploads written during the session are stored in the container's ephemeral filesystem and are lost when the container stops.
+
+    **Fix**: Add the uploads volume mount to your `docker run` command or `docker-compose.yml`:
+
+    ```yaml
+    volumes:
+      - ./uploads:/app/uploads
+    ```
+
+    See [Data Storage](/deployment/data-storage) for a full explanation of required volume mounts.
+  </Accordion>
+
+  <Accordion title="Database is not persisted after restart">
+    **Cause**: The `./data` directory is not mounted as a volume.
+
+    **Fix**: Add the data volume mount:
+
+    ```yaml
+    volumes:
+      - ./data:/app/data
+    ```
+
+    Both `./data` and `./uploads` must be mounted. See [Data Storage](/deployment/data-storage).
+  </Accordion>
+
+  <Accordion title="First registered user is not an admin">
+    **Cause**: An account was already created before yours. TREK grants admin to the very first user who registers on a fresh instance.
+
+    **Fix**: If the admin account was created by mistake or you need to reassign admin, use the reset script:
+
+    ```bash
+    docker exec -it trek node scripts/reset-admin.js
+    ```
+
+    Follow the prompts to set a specific user as admin.
+
+    If you are using OIDC and want to grant admin based on a group claim, set `OIDC_ADMIN_CLAIM` and `OIDC_ADMIN_VALUE` in your environment:
+
+    ```bash
+    OIDC_ADMIN_CLAIM=groups
+    OIDC_ADMIN_VALUE=app-trek-admins
+    ```
+  </Accordion>
+
+  <Accordion title="Encryption key issues / encrypted data unreadable">
+    **Symptom**: API keys, MFA, SMTP, or OIDC credentials appear missing or return decryption errors after a configuration change.
+
+    **Cause 1**: `ENCRYPTION_KEY` changed between restarts without running the migration script.
+
+    **Fix**: Restore the previous `ENCRYPTION_KEY` value, then follow the [key rotation procedure](/deployment/encryption#rotating-the-encryption-key) to migrate encrypted data to the new key before switching.
+
+    **Cause 2**: Upgrading from an older version that stored the key in `./data/.jwt_secret`.
+
+    **Fix**: TREK automatically falls back to `./data/.jwt_secret` if `ENCRYPTION_KEY` is not set. If you set a new `ENCRYPTION_KEY` without migrating, restore it to empty first, let TREK read from `.jwt_secret`, then run the migration script with the `.jwt_secret` content as the old key.
+
+    See [Encryption Key](/deployment/encryption) for the full rotation procedure.
+  </Accordion>
+</AccordionGroup>

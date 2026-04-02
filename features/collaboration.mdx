@@ -1,0 +1,79 @@
+---
+title: 'Collaboration'
+description: 'Plan trips together in real time with WebSocket sync, invite links, and role-based access.'
+---
+
+TREK lets multiple people plan the same trip simultaneously. Changes sync instantly over WebSocket — no refresh needed.
+
+## Real-time sync
+
+Every change you make — adding a place, updating the budget, checking a packing item — is broadcast to all other connected members of the trip within milliseconds. TREK uses a persistent WebSocket connection on the `/ws` path.
+
+<Note>
+  If you run TREK behind a reverse proxy, make sure WebSocket upgrades are enabled on the `/ws` path. See the [Reverse Proxy guide](/configuration/reverse-proxy) for Nginx and Caddy configuration examples.
+</Note>
+
+## Seeing who's online
+
+The trip view shows avatars for members currently connected to the trip, so you can see at a glance who else is planning at the same time.
+
+## Inviting members
+
+<Steps>
+  <Step title="Open the Members panel">
+    From the trip view, open the **Members** tab or settings.
+  </Step>
+  <Step title="Search for a user">
+    Enter the email address or username of the person you want to add. They must already have an account on your TREK instance.
+  </Step>
+  <Step title="Add them">
+    Click **Add**. The user is immediately granted member access and receives a notification.
+  </Step>
+</Steps>
+
+## Invite links
+
+Invite links let you onboard new users directly into a trip without requiring you to know their username first.
+
+<CardGroup cols={2}>
+  <Card title="Max uses" icon="users">
+    Set how many times the link can be used before it expires. Useful for group trips where you want to limit sign-ups.
+  </Card>
+  <Card title="Expiry" icon="clock">
+    Set a date after which the link stops working. Leave blank for a link that stays valid until its use count is reached.
+  </Card>
+</CardGroup>
+
+When someone follows an invite link, they complete registration and are automatically added to the trip as a member.
+
+Invite links are managed in the **Admin Panel → Invite Links**.
+
+<Tip>
+  For SSO-based onboarding (Google, Apple, Keycloak, Authentik, or any OIDC provider), see [SSO / OIDC](/configuration/sso-oidc).
+</Tip>
+
+## Role-based access
+
+TREK uses two roles per trip: **owner** and **member**.
+
+| Action | Owner | Member |
+|---|---|---|
+| View trip | Yes | Yes |
+| Add and edit places | Yes | Yes |
+| Manage budget | Yes | Yes |
+| Manage packing list | Yes | Yes |
+| Add reservations | Yes | Yes |
+| Upload files | Yes | Yes |
+| Invite and remove members | Yes | No |
+| Edit trip settings (title, dates, currency) | Yes | No |
+| Change cover image | Yes | No |
+| Archive trip | Yes | No |
+| Delete trip | Yes | No |
+
+<Note>
+  Only the trip owner can delete a trip. Admins on the TREK instance can delete any trip from the Admin Panel.
+</Note>
+
+## Removing members
+
+The trip owner can remove any member from the Members panel. Members can also remove themselves (leave a trip) at any time.

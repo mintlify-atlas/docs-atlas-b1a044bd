@@ -1,0 +1,212 @@
+---
+title: "Kubernetes (Helm)"
+description: Deploy TREK on Kubernetes using the official Helm chart.
+---
+
+## Prerequisites
+
+- [Helm 3](https://helm.sh/docs/intro/install/) installed locally
+- A running Kubernetes cluster with a default StorageClass (for PVCs)
+- `kubectl` configured to talk to your cluster
+
+## Installation
+
+<Steps>
+  <Step title="Clone the chart">
+    The Helm chart is bundled with the TREK repository. Clone it or copy the `chart/` directory to your local machine:
+
+    ```bash
+    git clone https://github.com/mauriceboe/TREK.git
+    cd TREK
+    ```
+  </Step>
+  <Step title="Create a values override file">
+    Create a `my-values.yaml` file to configure your deployment. At a minimum, set your encryption key and ingress host:
+
+    ```yaml
+    secretEnv:
+      ENCRYPTION_KEY: "your-32-byte-hex-key"  # openssl rand -hex 32
+
+    env:
+      ALLOWED_ORIGINS: "https://trek.yourdomain.com"
+
+    ingress:
+      enabled: true
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+        nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+      hosts:
+        - host: trek.yourdomain.com
+          paths:
+            - /
+      tls:
+        - secretName: trek-tls
+          hosts:
+            - trek.yourdomain.com
+    ```
+
+    <Note>
+      Generate a secure key with `openssl rand -hex 32` and store it somewhere safe before installing. See [Encryption Key](/deployment/encryption) for details on what it protects.
+    </Note>
+  </Step>
+  <Step title="Install the chart">
+    ```bash
+    helm install trek ./chart -f my-values.yaml
+    ```
+
+    To install into a specific namespace:
+
+    ```bash
+    helm install trek ./chart -f my-values.yaml --namespace trek --create-namespace
+    ```
+  </Step>
+  <Step title="Verify the deployment">
+    ```bash
+    kubectl get pods -l app.kubernetes.io/name=trek
+    kubectl get pvc
+    kubectl get ingress
+    ```
+
+    The pod should reach `Running` state within about 30 seconds. The health check polls `GET /api/health` automatically.
+  </Step>
+</Steps>
+
+## Key `values.yaml` options
+
+### Image
+
+```yaml
+image:
+  repository: mauriceboe/trek
+  tag: latest
+  pullPolicy: IfNotPresent
+```
+
+Change `tag` to pin a specific release (e.g. `"1.2.0"`).
+
+### Environment variables
+
+Plain environment variables are set under `env`. These are stored in a ConfigMap:
+
+```yaml
+env:
+  NODE_ENV: production
+  PORT: 3000
+  # ALLOWED_ORIGINS: "https://trek.yourdomain.com"
+  # ALLOW_INTERNAL_NETWORK: "false"
+  # COOKIE_SECURE: "true"
+  # OIDC_DISCOVERY_URL: ""
+```
+
+### Encryption key
+
+The encryption key protects API keys, MFA secrets, SMTP credentials, and OIDC client secrets stored in the database. It is stored in a Kubernetes Secret.
+
+**Option 1 — Set directly in values:**
+
+```yaml
+secretEnv:
+  ENCRYPTION_KEY: "your-32-byte-hex-key"
+```
+
+**Option 2 — Auto-generate at install time:**
+
+```yaml
+generateEncryptionKey: true
+```
+
+When `generateEncryptionKey` is `true`, a random key is generated on first install and persisted in a Secret. It is preserved across `helm upgrade` runs.
+
+**Option 3 — Reference an existing secret:**
+
+```yaml
+existingSecret: "my-trek-secret"
+existingSecretKey: ENCRYPTION_KEY
+```
+
+### Persistence
+
+Two PersistentVolumeClaims are created by default, one for the database and one for uploads:
+
+```yaml
+persistence:
+  enabled: true
+  data:
+    size: 1Gi
+  uploads:
+    size: 1Gi
+```
+
+Increase `uploads.size` if you expect a large volume of user-uploaded photos and documents.
+
+### Resource requests and limits
+
+```yaml
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+```
+
+Adjust these based on your cluster capacity and expected load.
+
+### Service
+
+```yaml
+service:
+  type: ClusterIP
+  port: 3000
+```
+
+Use `type: LoadBalancer` or `type: NodePort` if you need to expose TREK without an ingress controller.
+
+### Ingress with TLS
+
+```yaml
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: trek.yourdomain.com
+      paths:
+        - /
+  tls:
+    - secretName: trek-tls
+      hosts:
+        - trek.yourdomain.com
+```
+
+<Warning>
+  TREK uses WebSockets for real-time sync. Your ingress controller must support WebSocket upgrades on the `/ws` path. For nginx-ingress, the `proxy-read-timeout` and `proxy-send-timeout` annotations prevent the proxy from closing idle WebSocket connections prematurely. For other controllers, consult their WebSocket upgrade documentation.
+</Warning>
+
+## Upgrading
+
+To apply configuration changes or pull a new image:
+
+```bash
+helm upgrade trek ./chart -f my-values.yaml
+```
+
+Your PVCs and their data are not affected by upgrades. See [Updating TREK](/deployment/updating) for details.
+
+## Uninstalling
+
+```bash
+helm uninstall trek
+```
+
+<Warning>
+  `helm uninstall` does **not** delete PersistentVolumeClaims by default. Delete them manually if you want to remove all data:
+
+  ```bash
+  kubectl delete pvc -l app.kubernetes.io/name=trek
+  ```
+</Warning>

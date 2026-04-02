@@ -1,0 +1,87 @@
+---
+title: "Data Storage"
+description: Understand where TREK stores its database, uploads, logs, and backups.
+---
+
+TREK stores all persistent state in two directories that must be mounted as volumes: `./data` and `./uploads`.
+
+## Database
+
+TREK uses [SQLite](https://www.sqlite.org/) via `better-sqlite3`. The database file is:
+
+```
+./data/travel.db
+```
+
+SQLite stores the entire database in a single file, which makes it straightforward to back up — copy the file while the server is idle, or use the Admin Panel backup tool which handles locking automatically.
+
+## Uploads
+
+User-uploaded files (trip photos, documents, booking attachments, profile avatars, and trip covers) are stored in:
+
+```
+./uploads/
+```
+
+The directory is organized into subdirectories created automatically on first start:
+
+```
+uploads/
+├── avatars/
+├── covers/
+├── files/
+└── photos/
+```
+
+## Logs
+
+Application logs are written to:
+
+```
+./data/logs/trek.log
+```
+
+The log file is auto-rotated to prevent unbounded growth. Verbosity is controlled by the `LOG_LEVEL` environment variable:
+
+| Value   | Output                                      |
+| ------- | ------------------------------------------- |
+| `info`  | Concise user-action events (default)        |
+| `debug` | Verbose admin-level details for diagnostics |
+
+Set `LOG_LEVEL=debug` in your `.env` or `docker-compose.yml` when troubleshooting.
+
+## Backups
+
+Backups are stored inside the data directory:
+
+```
+./data/backups/
+```
+
+You can create and restore backups from the **Admin Panel → Backups**. Auto-backups run on a configurable schedule with a configurable retention count — both are set in the Admin Panel.
+
+The encryption key rotation script also writes a timestamped database backup to `./data/` before making any changes.
+
+## Volume mount summary
+
+Both volumes must be mounted for TREK to persist data across restarts and updates.
+
+| Host path   | Container path | Purpose                                                  |
+| ----------- | -------------- | -------------------------------------------------------- |
+| `./data`    | `/app/data`    | SQLite database, logs, backups, auto-generated key files |
+| `./uploads` | `/app/uploads` | Photos, documents, avatars, trip covers                  |
+
+<Warning>
+  If either volume is missing, data written during that session is lost when the container stops. Always verify both mounts are in place before starting TREK in production.
+</Warning>
+
+## Storage sizing guidance
+
+- **Database** (`travel.db`): starts small (a few MB) and grows gradually as you add trips, places, reservations, and budget entries. Pure trip metadata is lightweight.
+- **Uploads** (`./uploads/`): dominated by photos and PDFs. Each file can be up to 50 MB. Size this volume based on how many users you have and how frequently they attach files.
+- **Logs** (`./data/logs/trek.log`): auto-rotated, negligible in practice.
+- **Backups** (`./data/backups/`): each backup is roughly the size of `travel.db`. Set a sensible retention count in the Admin Panel to avoid accumulation.
+
+<Tip>
+  Start with 1 GB for `./data` and 5–10 GB for `./uploads`, then adjust based on observed growth. On Kubernetes, the default Helm chart allocates 1 Gi for each PVC.
+</Tip>

@@ -1,0 +1,106 @@
+---
+title: 'Budget & Packing'
+description: 'Track expenses with multi-currency support and manage packing lists with reusable templates.'
+---
+
+<Tabs>
+  <Tab title="Budget">
+
+## Budget tracking
+
+The Budget panel lets you record and categorize all trip expenses, split costs across travelers, and visualize spending with a pie chart.
+
+### Adding expenses
+
+Each budget item has:
+
+- **Name** — a description of the expense.
+- **Category** — used to group items in the chart (e.g., Accommodation, Food, Transport).
+- **Total price** — the full cost of the item.
+- **Persons** — how many people share this expense. You can assign specific trip members instead of entering a number manually.
+- **Days** — optional number of days to factor into a per-day cost (e.g., a 5-night hotel stay).
+- **Date** — the date the expense occurred.
+- **Note** — any additional details.
+
+### Splitting costs
+
+<CardGroup cols={2}>
+  <Card title="Per person" icon="users">
+    Assign specific trip members to an item. TREK divides the total evenly and tracks who has paid their share.
+  </Card>
+  <Card title="Per day" icon="calendar">
+    Enter the number of days to calculate a daily rate alongside the total cost.
+  </Card>
+</CardGroup>
+
+To mark a member's share as paid, open the budget item and toggle their paid status.
+
+### Settlement
+
+TREK calculates who owes whom based on paid statuses and shows an optimized set of transfers to settle all balances — so the group needs to make as few payments as possible.
+
+### Pie chart visualization
+
+The budget overview displays a pie chart breaking down spending by category, giving you a quick picture of where money is going.
+
+### Trip currency
+
+The trip's default currency is set when creating the trip and can be changed in trip settings. Each budget item can also use a different currency if needed — useful when recording expenses in local currencies while tracking the overall budget in your home currency.
+
+<Note>
+  TREK does not perform automatic currency conversion. Exchange rates are not applied; currency codes are recorded for reference only.
+</Note>
+
+  </Tab>
+  <Tab title="Packing">
+
+## Packing lists
+
+The Packing panel helps you build category-based checklists, assign items to travelers, and track packing progress across the group.
+
+### Adding items
+
+Items belong to a **category** (e.g., Clothing, Toiletries, Electronics). You can add items one at a time or bulk-import them. Checking an item marks it as packed and updates the progress indicator.
+
+### Assigning categories to members
+
+Each category can be assigned to one or more trip members, making it clear who is responsible for packing those items. Assigned members receive a notification.
+
+### Progress tracking
+
+The packing panel shows overall progress as a percentage of checked items, and breaks down progress per category so you can see at a glance what's still missing.
+
+### Packing templates
+
+Templates let you save a standard packing list and apply it to any trip with one click.
+
+<Steps>
+  <Step title="Create a template">
+    Go to **Admin Panel → Packing Templates**. Create a template with categories and items (e.g., a "Beach Trip" template with Swimwear, Sunscreen, Snorkeling gear).
+  </Step>
+  <Step title="Apply to a trip">
+    Open the Packing panel on any trip and click **Apply template**. Select the template to add all its items to the trip's packing list.
+  </Step>
+</Steps>
+
+<Tip>
+  Templates are managed by admins and are available to all users on the instance. They're a good way to share standard lists for common trip types.
+</Tip>
+
+### Bag tracking
+
+Bag tracking is an optional feature that can be enabled or disabled by an admin.
+
+When enabled, you can:
+
+- Create named bags (e.g., Carry-on, Checked bag, Backpack) with custom colors.
+- Assign individual packing items to a bag.
+- Record item weights in grams.
+- Set a weight limit per bag to track total weight distribution.
+
+<Note>
+  Bag tracking is toggled in the **Admin Panel → Settings**. When disabled, the bag column is hidden from the packing list.
+</Note>
+
+  </Tab>
+</Tabs>

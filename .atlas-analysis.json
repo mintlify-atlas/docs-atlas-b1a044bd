@@ -1,0 +1,135 @@
+{
+  "projectType": "saas",
+  "projectName": "TREK",
+  "projectDescription": "A self-hosted, real-time collaborative travel planner with interactive maps, budgets, packing lists, SSO, and PWA support.",
+  "theme": "almond",
+  "primaryColor": "#040404",
+  "lightColor": "#192234",
+  "darkColor": "#848c94",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environment-variables",
+              "configuration/reverse-proxy",
+              "configuration/sso-oidc",
+              "configuration/api-keys"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/trip-planning",
+              "features/collaboration",
+              "features/budget-packing",
+              "features/maps-weather",
+              "features/files-pdf"
+            ]
+          },
+          {
+            "group": "Addons",
+            "pages": [
+              "addons/overview",
+              "addons/atlas",
+              "addons/vacay",
+              "addons/collab",
+              "addons/mcp"
+            ]
+          },
+          {
+            "group": "Administration",
+            "pages": [
+              "admin/user-management",
+              "admin/backups",
+              "admin/security",
+              "admin/pwa"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Deployment",
+        "groups": [
+          {
+            "group": "Deploy",
+            "pages": [
+              "deployment/docker",
+              "deployment/kubernetes",
+              "deployment/updating"
+            ]
+          },
+          {
+            "group": "Operations",
+            "pages": [
+              "deployment/data-storage",
+              "deployment/encryption",
+              "deployment/troubleshooting"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Real-time collaborative trip planning via WebSocket",
+    "Interactive Leaflet maps with photo markers, clustering, and route optimization",
+    "Budget tracking with multi-currency support and per-person/per-day splitting",
+    "Packing lists with templates, bag tracking, and user assignment",
+    "Reservations and bookings for flights, hotels, restaurants, and more",
+    "Progressive Web App (PWA) with offline support via Workbox",
+    "Single Sign-On (OIDC) with Google, Apple, Keycloak, Authentik, and more",
+    "Two-Factor Authentication (TOTP/MFA)",
+    "MCP server for AI assistant integration (Claude, Cursor, etc.)",
+    "Multilingual support (8 languages including RTL Arabic)",
+    "Admin panel with user management, invite links, and auto-backups",
+    "Atlas addon: interactive visited-countries world map with stats",
+    "Vacay addon: personal vacation day planner with public holiday support",
+    "PDF export of complete trip plans",
+    "Helm chart for Kubernetes deployment"
+  ],
+  "publicApiSurface": [
+    "GET /api/health",
+    "POST /api/auth/login",
+    "POST /api/auth/register",
+    "GET /api/trips",
+    "POST /api/trips",
+    "GET /api/trips/:id",
+    "PUT /api/trips/:id",
+    "DELETE /api/trips/:id",
+    "GET /api/trips/:id/days",
+    "GET /api/trips/:id/places",
+    "POST /api/trips/:id/places",
+    "GET /api/trips/:id/budget",
+    "POST /api/trips/:id/budget",
+    "GET /api/trips/:id/packing",
+    "POST /api/trips/:id/packing",
+    "GET /api/trips/:id/reservations",
+    "POST /api/trips/:id/reservations",
+    "GET /api/admin/users",
+    "POST /api/admin/users",
+    "GET /api/settings",
+    "WebSocket /ws (real-time sync)",
+    "MCP /mcp (Model Context Protocol endpoint)",
+    "MCP tool: get_trip_summary",
+    "MCP tool: list_trips / create_trip / update_trip / delete_trip",
+    "MCP tool: create_place / update_place / delete_place",
+    "MCP tool: assign_place_to_day / reorder_day_assignments",
+    "MCP tool: create_reservation / update_reservation / delete_reservation",
+    "MCP tool: create_budget_item / update_budget_item / delete_budget_item",
+    "MCP tool: create_packing_item / toggle_packing_item / delete_packing_item",
+    "MCP tool: create_day_note / update_day_note / delete_day_note",
+    "MCP tool: mark_country_visited / unmark_country_visited"
+  ]
+}

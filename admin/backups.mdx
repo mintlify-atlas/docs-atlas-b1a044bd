@@ -1,0 +1,119 @@
+---
+title: 'Backups'
+description: 'Create, download, and restore database backups from the Admin Panel or automatically on a schedule.'
+---
+
+TREK stores all data in a single SQLite database file (`./data/travel.db`). Backups package this file — along with your uploaded files — into a ZIP archive that you can download and store off-server.
+
+## What's backed up
+
+A backup archive contains:
+
+- **`travel.db`** — the full SQLite database (users, trips, places, budgets, packing lists, reservations, settings, etc.)
+- **`uploads/`** — all uploaded files (trip covers, attachments, avatars, documents)
+
+<Note>
+  Logs (`./data/logs/`) are not included in backup archives.
+</Note>
+
+## File locations
+
+| Path | Contents |
+|---|---|
+| `./data/travel.db` | Primary database |
+| `./data/backups/` | All backup ZIP files |
+| `./uploads/` | User-uploaded files (also included in backups) |
+
+## Manual backups
+
+<Steps>
+  <Step title="Open the Admin Panel">
+    Navigate to the Admin Panel from the main menu.
+  </Step>
+  <Step title="Go to Backups">
+    Select the **Backups** section.
+  </Step>
+  <Step title="Create a backup">
+    Click **Create backup**. TREK checkpoints the WAL and packages the database and uploads directory into a timestamped ZIP file (e.g. `backup-2026-04-01T14-30-00.zip`).
+  </Step>
+  <Step title="Download the backup">
+    Once created, the backup appears in the list. Click **Download** to save the ZIP to your local machine.
+  </Step>
+</Steps>
+
+<Tip>
+  Store downloaded backups in a separate location from your server — for example, a cloud storage bucket or a local workstation. A backup on the same disk as TREK does not protect you from disk failure.
+</Tip>
+
+<Note>
+  Manual backup creation is rate-limited to 3 requests per hour per IP to prevent abuse.
+</Note>
+
+## Automatic backups
+
+TREK can run backups on a configurable schedule without manual intervention.
+
+<Steps>
+  <Step title="Open Auto-backup settings">
+    In **Admin Panel → Backups**, scroll to the **Automatic backups** section.
+  </Step>
+  <Step title="Enable and configure">
+    Toggle automatic backups on and set:
+
+    - **Interval** — `daily`, `weekly`, or `monthly`
+    - **Hour** — the hour of day (0–23) when the backup runs (in the server's configured timezone)
+    - **Retention** — number of days to keep old backups (`keep_days`). Backups older than this are deleted automatically. Set to `0` to keep all backups indefinitely.
+  </Step>
+  <Step title="Save">
+    Click **Save**. The scheduler starts immediately and runs at the next scheduled time.
+  </Step>
+</Steps>
+
+<Note>
+  The backup schedule runs in the server's timezone, which is set via the `TZ` environment variable (default: `UTC`). Make sure `TZ` is configured correctly so backups run at your intended local time.
+</Note>
+
+## Restoring from backup
+
+You can restore from any backup listed in the Admin Panel, or upload a backup ZIP from your local machine.
+
+<Warning>
+  Restoring a backup **replaces the current database and all uploaded files**. All data created after the backup was taken will be lost. This action cannot be undone.
+</Warning>
+
+<Tabs>
+  <Tab title="Restore from list">
+    <Steps>
+      <Step title="Open Backups">
+        In the Admin Panel, navigate to **Backups**.
+      </Step>
+      <Step title="Select a backup">
+        Find the backup you want to restore in the list.
+      </Step>
+      <Step title="Restore">
+        Click **Restore** next to the chosen backup. Confirm the prompt. TREK validates the archive, replaces the database, restores uploaded files, and reinitializes the database connection automatically.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Upload and restore">
+    <Steps>
+      <Step title="Open Backups">
+        In the Admin Panel, navigate to **Backups**.
+      </Step>
+      <Step title="Upload a backup file">
+        Click **Upload backup** and select a TREK backup ZIP from your local machine (maximum 500 MB).
+      </Step>
+      <Step title="Restore">
+        TREK validates the uploaded archive — checking that `travel.db` is a valid SQLite database and contains the required tables — then replaces the live database and uploads.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+TREK validates every backup before restoring:
+
+- The archive must contain a `travel.db` file
+- The database must pass SQLite's `PRAGMA integrity_check`
+- The database must include all required tables (`users`, `trips`, `trip_members`, `places`, `days`)
+
+If validation fails, the current data is left untouched and an error is returned.

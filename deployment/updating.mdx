@@ -1,0 +1,65 @@
+---
+title: "Updating TREK"
+description: Pull the latest image and restart to update TREK with zero data loss.
+---
+
+TREK follows a rolling-update model: pull a new image, restart the container. Your data lives in mounted volumes and is never modified by the update process.
+
+## Docker Compose (recommended)
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Docker Compose pulls the latest image, then recreates the container with the same volume mounts and environment variables. The old container is stopped and removed automatically.
+
+## Docker Run
+
+If you started TREK with `docker run`, use the same volume paths from your original command:
+
+```bash
+docker pull mauriceboe/trek
+docker rm -f trek
+docker run -d --name trek -p 3000:3000 \
+  -v ./data:/app/data -v ./uploads:/app/uploads \
+  --restart unless-stopped mauriceboe/trek
+```
+
+<Tip>
+  Not sure which paths you used? Inspect the running container before removing it:
+
+  ```bash
+  docker inspect trek --format '{{json .Mounts}}'
+  ```
+
+  This prints the exact host paths bound to the container so you can use them in your new `docker run` command.
+</Tip>
+
+## Kubernetes (Helm)
+
+```bash
+helm upgrade trek ./chart -f my-values.yaml
+```
+
+If you want to pull a specific image tag, set it in your values file or pass it directly:
+
+```bash
+helm upgrade trek ./chart -f my-values.yaml --set image.tag=1.2.0
+```
+
+## Data safety
+
+Your data lives in the `./data` and `./uploads` volumes (or PVCs on Kubernetes). The update process only replaces the container image — it never touches the mounted volumes. A fresh container starts against the same database and uploads directory as before.
+
+<Note>
+  If a release includes database schema migrations, they run automatically on startup. No manual steps are needed.
+</Note>
+
+## Monitoring for new releases
+
+New releases are published to:
+
+- **GitHub Releases**: [github.com/mauriceboe/TREK/releases](https://github.com/mauriceboe/TREK/releases)
+- **Docker Hub**: [hub.docker.com/r/mauriceboe/trek](https://hub.docker.com/r/mauriceboe/trek)
+
+The Admin Panel also shows the GitHub release history under **Settings → About**, so you can check for updates from within TREK.

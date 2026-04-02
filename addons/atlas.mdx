@@ -1,0 +1,67 @@
+---
+title: "Atlas"
+description: Track your travel history with an interactive world map, bucket list, and travel statistics.
+---
+
+Atlas is an interactive world map addon that lets you visualize your travel history, maintain a personal bucket list, and review statistics about the countries and continents you have visited.
+
+## Accessing Atlas
+
+When the Atlas addon is enabled by your administrator, an **Atlas** entry appears in the main navigation menu. Click it to open the full-screen map view.
+
+## Marking countries as visited
+
+Countries can be marked as visited in two ways:
+
+- **Automatically** — TREK detects countries from the addresses and coordinates of places you have added to your trips. It resolves countries using address parsing, a bounding-box lookup, and reverse geocoding via the Nominatim API.
+- **Manually** — Click any country on the map and toggle it as visited. Manual marks use ISO 3166-1 alpha-2 country codes (e.g. `FR` for France, `JP` for Japan) stored in your personal visited countries list.
+
+<Note>
+  Manually marked countries are merged with trip-derived countries when calculating your statistics. A country visited through a trip and also manually marked is counted only once.
+</Note>
+
+## Bucket list
+
+The bucket list lets you save destinations you plan to visit in the future.
+
+Each bucket list item supports:
+
+- **Name** — the destination or experience
+- **Coordinates** — optional latitude and longitude to pin it on the map
+- **Country code** — ISO 3166-1 alpha-2 code to associate it with a specific country
+- **Notes** — free-text notes about the destination
+- **Target date** — an optional planned travel date
+
+Bucket list items appear separately from visited countries and are personal — they are not shared with other trip members.
+
+## Travel statistics
+
+The Atlas sidebar displays a summary of your travel history derived from all trips you own or are a member of.
+
+| Statistic | Description |
+|---|---|
+| Countries | Total unique countries visited |
+| Trips | Total number of trips |
+| Places | Total places across all trips |
+| Cities | Unique cities extracted from place addresses |
+| Days | Total trip days across all dated trips |
+| Continents | Breakdown of visited countries by continent (Europe, Asia, North America, South America, Africa, Oceania) |
+| Streak | Consecutive years with at least one trip, counting back from the current year |
+| Most visited | Country with the highest number of saved places |
+| Last trip | Most recently completed trip and its country |
+| Next trip | Upcoming trip and how many days away it is |
+
+## Liquid glass UI effects
+
+The Atlas page uses a liquid glass visual style for stat panels and the sidebar, giving the interface a translucent, layered appearance that adapts to both light and dark themes.
+
+## MCP integration
+
+When the [MCP addon](/addons/mcp) is also enabled, AI assistants can interact with Atlas data using two tools:
+
+| Tool | Description |
+|---|---|
+| `mark_country_visited` | Mark a country as visited using its ISO 3166-1 alpha-2 code (e.g. `"FR"`, `"JP"`) |
+| `unmark_country_visited` | Remove a country from your visited list |
+
+The `trek://visited-countries` MCP resource provides read-only access to your full list of visited countries.

@@ -1,0 +1,104 @@
+---
+title: "Reverse Proxy"
+description: "Put TREK behind Nginx, Caddy, or Traefik for HTTPS and WebSocket support."
+---
+
+A reverse proxy is strongly recommended for production deployments. It handles:
+
+- **TLS termination** — serves TREK over HTTPS without managing certificates in the app itself.
+- **WebSocket proxying** — TREK uses WebSockets for real-time collaboration; your proxy must forward the upgrade handshake.
+- **Client IP forwarding** — passes the real client IP to TREK via `X-Forwarded-For`.
+
+<Warning>
+  TREK uses WebSockets for real-time sync. Your reverse proxy **must** support WebSocket upgrades on the `/ws` path. If this path is not proxied correctly, real-time collaboration will not work.
+</Warning>
+
+## Proxy configurations
+
+<Tabs>
+  <Tab title="Nginx">
+    The `/ws` location block must set the `Upgrade` and `Connection` headers explicitly, and use `proxy_http_version 1.1`.
+
+    ```nginx
+    server {
+        listen 80;
+        server_name trek.yourdomain.com;
+        return 301 https://$host$request_uri;
+    }
+
+    server {
+        listen 443 ssl http2;
+        server_name trek.yourdomain.com;
+
+        ssl_certificate /path/to/fullchain.pem;
+        ssl_certificate_key /path/to/privkey.pem;
+
+        location /ws {
+            proxy_pass http://localhost:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_read_timeout 86400;
+        }
+
+        location / {
+            proxy_pass http://localhost:3000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Caddy">
+    Caddy handles WebSocket upgrades automatically — no extra configuration is needed for `/ws`.
+
+    ```caddy
+    trek.yourdomain.com {
+        reverse_proxy localhost:3000
+    }
+    ```
+
+    Caddy also provisions and renews TLS certificates automatically via Let's Encrypt.
+  </Tab>
+</Tabs>
+
+## Related environment variables
+
+After setting up your reverse proxy, configure TREK to trust it using the following environment variables.
+
+### FORCE_HTTPS
+
+Set `FORCE_HTTPS=true` to redirect all incoming HTTP requests to HTTPS. Enable this when TREK is behind a TLS-terminating proxy so that the app itself enforces secure connections.
+
+```yaml
+environment:
+  - FORCE_HTTPS=true
+```
+
+### TRUST_PROXY
+
+Set `TRUST_PROXY` to the number of trusted reverse proxies in front of TREK. This controls how TREK reads the real client IP from the `X-Forwarded-For` header.
+
+```yaml
+environment:
+  - TRUST_PROXY=1
+```
+
+Set to `0` only if TREK is directly exposed to the internet without a proxy.
+
+### ALLOWED_ORIGINS
+
+Set `ALLOWED_ORIGINS` to a comma-separated list of allowed origins for CORS. This should include the public URL of your TREK instance and any other origins that need to make API requests.
+
+```yaml
+environment:
+  - ALLOWED_ORIGINS=https://trek.yourdomain.com
+```
+
+If unset, TREK defaults to same-origin only.

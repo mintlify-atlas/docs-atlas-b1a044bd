@@ -1,0 +1,74 @@
+---
+title: 'Maps & Weather'
+description: 'Interactive maps with photo markers, route visualization, and 16-day weather forecasts.'
+---
+
+TREK embeds an interactive Leaflet map in every trip view, showing all your places as photo markers with clustering, route lines, and category-based filtering. Weather forecasts appear per day using the free Open-Meteo API.
+
+## Interactive map
+
+### Photo markers
+
+Each place on the map is represented by a circular photo marker. If a photo is available (from Google Places or Wikimedia Commons), it appears inside the marker. Markers are clustered automatically when zoomed out to keep the map readable.
+
+### Route visualization
+
+When places are assigned to a day, the map can draw a route line connecting them in visit order. The route updates live as you drag places between days or reorder them within a day.
+
+### Category filter
+
+Use the category filter to show only places belonging to a specific category. Pins for all other categories are hidden while the filter is active, making it easier to focus on a single type of place (for example, showing only restaurants).
+
+## Map tile source
+
+TREK uses a tile-based map layer. The tile source URL is configurable by an admin in **Admin Panel → Settings → Map tile source**. You can use any XYZ tile provider.
+
+<Note>
+  The default tile source is OpenStreetMap. If you switch to a commercial provider, make sure you comply with that provider's terms of service.
+</Note>
+
+### Default map coordinates
+
+The map opens centered on a default location. Admins can configure the default latitude, longitude, and zoom level in **Admin Panel → Settings** so the map opens on a relevant region for your instance.
+
+## Place search on the map
+
+You can search for places directly from the map view using the same search backend as the planner:
+
+<CardGroup cols={2}>
+  <Card title="OpenStreetMap" icon="map">
+    Free, no API key required. Searches via Nominatim and returns name, address, and coordinates.
+  </Card>
+  <Card title="Google Places" icon="star">
+    Returns photos, ratings, opening hours, and more. Requires a Google Places API key in the Admin Panel.
+  </Card>
+</CardGroup>
+
+Selecting a result from the search adds the place to your trip and drops a marker on the map.
+
+## Weather forecasts
+
+TREK fetches weather data per day automatically when a day has a date and at least one place with coordinates.
+
+### 16-day forecast
+
+For dates within the next 16 days, TREK fetches a forecast from [Open-Meteo](https://open-meteo.com/) — a free weather API that requires no API key. The forecast includes:
+
+- Daily high and low temperatures
+- Weather condition (clear, cloudy, rain, snow, etc.)
+- Precipitation amount and probability
+- Wind speed
+- Sunrise and sunset times
+- Hourly breakdown
+
+### Historical climate averages
+
+For dates beyond the 16-day forecast window, TREK falls back to historical climate data from the Open-Meteo archive API. It queries the same calendar dates from the previous year and averages the temperature and precipitation values to give you a typical expectation for that time of year and location.
+
+<Note>
+  Historical climate data is clearly labeled as "climate average" rather than "forecast" so you can tell the difference at a glance.
+</Note>
+
+<Tip>
+  Weather data is cached — forecasts for up to 1 hour, current conditions for 15 minutes, and climate averages for 24 hours — to keep API usage low and responses fast.
+</Tip>

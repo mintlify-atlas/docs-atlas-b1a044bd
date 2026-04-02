@@ -1,0 +1,78 @@
+---
+title: 'Files & PDF Export'
+description: 'Attach documents to trips, places, and reservations, and export complete trip plans as PDF.'
+---
+
+TREK includes a document manager for attaching files to trips, places, and reservations, along with a PDF export that generates a shareable summary of the entire trip plan.
+
+## Document manager
+
+### Attaching files
+
+Files can be attached at three levels:
+
+<CardGroup cols={3}>
+  <Card title="Trip" icon="folder">
+    General documents for the trip, such as travel insurance, visa copies, or itinerary printouts.
+  </Card>
+  <Card title="Place" icon="map-pin">
+    Documents specific to a place, such as entry tickets, reservation confirmations, or venue details.
+  </Card>
+  <Card title="Reservation" icon="calendar-check">
+    Files tied to a booking, such as flight e-tickets, hotel confirmation emails, or restaurant receipts.
+  </Card>
+</CardGroup>
+
+### Supported file types
+
+By default, TREK accepts the following formats:
+
+`jpg`, `jpeg`, `png`, `gif`, `webp`, `heic`, `pdf`, `doc`, `docx`, `xls`, `xlsx`, `txt`, `csv`
+
+The allowed types can be adjusted by an admin in **Admin Panel → Settings → Allowed file types**.
+
+The following types are always blocked regardless of settings: `.svg`, `.html`, `.htm`, `.xml`.
+
+### File size limit
+
+Each file can be up to **50 MB**.
+
+### Organizing files
+
+- **Star a file** to pin it to the top of the file list.
+- **Delete** moves a file to the trash (soft delete). Files in the trash can be restored or permanently deleted.
+- **Empty trash** permanently removes all trashed files for the trip.
+
+<Note>
+  A file can be linked to multiple reservations or places simultaneously using the link feature, without duplicating the upload.
+</Note>
+
+## PDF export
+
+The PDF export generates a complete, formatted document of your trip plan.
+
+### What's included
+
+- Cover page with the trip title and cover image
+- Day-by-day itinerary with places, times, and notes
+- Place photos where available
+- Day notes
+- TREK branding
+
+### Triggering the export
+
+<Steps>
+  <Step title="Open the trip">
+    Navigate to the trip you want to export.
+  </Step>
+  <Step title="Open the export menu">
+    Click the **Export** or **Share** button in the trip toolbar (the exact label depends on your TREK version).
+  </Step>
+  <Step title="Download PDF">
+    Click **Export as PDF**. The PDF is generated server-side and downloads automatically.
+  </Step>
+</Steps>
+
+<Tip>
+  The PDF export is a good way to share a read-only copy of the itinerary with people who don't have a TREK account, or to keep an offline backup.
+</Tip>

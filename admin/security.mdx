@@ -1,0 +1,142 @@
+---
+title: 'Security'
+description: 'Configure Two-Factor Authentication, password policies, session management, and security hardening.'
+---
+
+## Two-Factor Authentication (2FA / MFA)
+
+TREK supports TOTP-based two-factor authentication. Users enroll via a QR code and verify logins with a time-based one-time password from any standard authenticator app.
+
+### Enabling 2FA (user-facing)
+
+<Steps>
+  <Step title="Open profile settings">
+    Navigate to your profile and select **Security** or **Two-Factor Authentication**.
+  </Step>
+  <Step title="Scan the QR code">
+    TREK generates a QR code. Scan it with an authenticator app such as Google Authenticator, Authy, or any TOTP-compatible app.
+  </Step>
+  <Step title="Confirm with a code">
+    Enter the 6-digit code shown in your authenticator app to verify the setup. The pending secret is held for a maximum of 15 minutes; if you do not confirm within that window, you must restart the setup.
+  </Step>
+  <Step title="Save your backup codes">
+    After confirming, TREK generates **10 one-time backup codes**. These are shown exactly once — copy or print them and store them securely. Each code can be used once if you lose access to your authenticator app.
+  </Step>
+</Steps>
+
+<Warning>
+  Backup codes are displayed only during setup and cannot be retrieved later. If you lose both your authenticator app and your backup codes, an admin must reset your account's MFA directly in the database.
+</Warning>
+
+### How backup codes work
+
+- Format: `XXXX-XXXX` (8 hex characters, case-insensitive)
+- 10 codes are generated per setup
+- Each code is single-use; once consumed it cannot be reused
+- Codes are stored as SHA-256 hashes — they are not recoverable if lost
+
+### Login with 2FA
+
+When 2FA is enabled on an account, logging in with email and password returns a short-lived MFA challenge token (valid for 5 minutes). You must then submit a valid TOTP code or backup code to complete the login. Failed MFA attempts are rate-limited to 5 per 15-minute window.
+
+### Requiring 2FA instance-wide
+
+Admins can require all users to enroll in 2FA before accessing the application. This setting is available in **Admin Panel → Security** (`require_mfa`).
+
+## Password policy
+
+All passwords — whether set at registration, created by an admin, or reset — are validated against the following rules:
+
+<AccordionGroup>
+  <Accordion title="Password requirements">
+    - Minimum **8 characters**
+    - At least one **uppercase** letter (`A–Z`)
+    - At least one **lowercase** letter (`a–z`)
+    - At least one **digit** (`0–9`)
+    - At least one **special character** (any non-alphanumeric character)
+    - Not entirely **repetitive** (e.g. `aaaaaaaa` is rejected)
+    - Not a **commonly used password** (a built-in blocklist covers passwords such as `password123`, `admin1234`, `passw0rd`, etc.)
+  </Accordion>
+</AccordionGroup>
+
+Passwords are hashed with `bcrypt` at cost factor 12 before storage. Plain-text passwords are never persisted.
+
+## Session management
+
+TREK uses **JWT (JSON Web Tokens)** for session management:
+
+- Tokens are signed with `HS256` and expire after **24 hours**
+- Tokens are issued as HTTP-only cookies (and also returned in the login response body)
+- The signing secret is stored in `./data/.jwt_secret` and loaded at startup, or derived from the `ENCRYPTION_KEY` environment variable
+
+### Rotating the JWT secret
+
+Rotating the JWT secret immediately invalidates **all active sessions** across the entire instance, requiring all users to log in again.
+
+From the Admin Panel, navigate to **Security → Rotate JWT Secret** and confirm. The new secret is written to `./data/.jwt_secret` and takes effect immediately.
+
+<Warning>
+  All users will be logged out when the JWT secret is rotated. Coordinate this with your users if you have an active instance.
+</Warning>
+
+## Cookie security
+
+| Setting | Default | Notes |
+|---|---|---|
+| `COOKIE_SECURE` | `true` (production) | Restricts session cookies to HTTPS connections only. Set to `false` only for local HTTP access without a proxy. **Not recommended to disable in production.** |
+| `FORCE_HTTPS` | `false` | When `true`, TREK redirects all incoming HTTP requests to HTTPS. Enable this when TREK is behind a TLS-terminating reverse proxy. |
+
+## Security hardening (Docker)
+
+The recommended Docker Compose configuration enforces a hardened container runtime:
+
+```yaml
+services:
+  app:
+    image: mauriceboe/trek:latest
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    tmpfs:
+      - /tmp:noexec,nosuid,size=64m
+```
+
+<AccordionGroup>
+  <Accordion title="read_only: true">
+    Mounts the container filesystem as read-only. TREK writes data only to the mounted `./data` and `./uploads` volumes, and uses `/tmp` for ephemeral scratch space.
+  </Accordion>
+  <Accordion title="no-new-privileges: true">
+    Prevents any process inside the container from gaining elevated privileges via `setuid`/`setgid` binaries or similar mechanisms.
+  </Accordion>
+  <Accordion title="cap_drop ALL / cap_add minimal">
+    Drops all Linux capabilities and re-adds only the three needed for the Node.js process to run correctly:
+    - `CHOWN` — change file ownership on volume mounts
+    - `SETUID` — switch to a non-root user at startup
+    - `SETGID` — switch group at startup
+  </Accordion>
+  <Accordion title="tmpfs /tmp">
+    Mounts `/tmp` as an in-memory filesystem with `noexec` and `nosuid` flags and a 64 MB size limit. Temporary files written here are never persisted to disk.
+  </Accordion>
+</AccordionGroup>
+
+## Audit log
+
+TREK records an audit log entry for every significant administrative and user action (login, user creation, permission changes, backups, etc.).
+
+- View the log in **Admin Panel → Audit Log**
+- Set `LOG_LEVEL=debug` to emit verbose details to the application log file (`./data/logs/trek.log`)
+- The log is paginated (up to 500 entries per request)
+
+<Tip>
+  The audit log is stored in the database and is included in backups. Entries record the acting user, action type, target resource, client IP, and a JSON details payload.
+</Tip>
+
+## Single Sign-On (SSO / OIDC)
+
+TREK supports login via any OpenID Connect provider (Google, Apple, Authentik, Keycloak, and others). SSO configuration is covered in the [SSO / OIDC guide](/configuration/sso-oidc).

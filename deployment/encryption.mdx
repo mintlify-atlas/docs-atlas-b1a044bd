@@ -1,0 +1,103 @@
+---
+title: "Encryption Key"
+description: Manage the encryption key used to protect stored secrets like API keys, MFA, SMTP, and OIDC credentials.
+---
+
+## What the encryption key protects
+
+TREK encrypts sensitive values before writing them to the SQLite database. The `ENCRYPTION_KEY` is the key used for this at-rest encryption. Protected fields include:
+
+- Google Maps and other admin-configured API keys
+- TOTP MFA secrets
+- SMTP credentials
+- OIDC client secrets
+
+<Warning>
+  If you lose your `ENCRYPTION_KEY` and have no backup of it, all encrypted data in the database becomes permanently unreadable. You will need to re-enter API keys, reconfigure MFA for all users, and re-enter SMTP and OIDC credentials.
+</Warning>
+
+## Generating a key
+
+Generate a cryptographically random 32-byte hex string:
+
+```bash
+openssl rand -hex 32
+```
+
+This produces a 64-character hex string, for example:
+
+```
+a3f1c2e4b5d67890a3f1c2e4b5d67890a3f1c2e4b5d67890a3f1c2e4b5d67890
+```
+
+## Setting the key
+
+Pass it as an environment variable:
+
+<CodeGroup>
+  ```bash Docker Run
+  ENCRYPTION_KEY=$(openssl rand -hex 32) docker run -d -p 3000:3000 \
+    -e ENCRYPTION_KEY=$ENCRYPTION_KEY \
+    -v ./data:/app/data -v ./uploads:/app/uploads mauriceboe/trek
+  ```
+
+  ```bash .env file (Docker Compose)
+  ENCRYPTION_KEY=a3f1c2e4b5d67890a3f1c2e4b5d67890a3f1c2e4b5d67890a3f1c2e4b5d67890
+  ```
+
+  ```yaml Helm values.yaml
+  secretEnv:
+    ENCRYPTION_KEY: "a3f1c2e4b5d67890a3f1c2e4b5d67890a3f1c2e4b5d67890a3f1c2e4b5d67890"
+  ```
+</CodeGroup>
+
+## Auto-generation fallback
+
+If `ENCRYPTION_KEY` is not set, TREK resolves a key automatically using the following precedence:
+
+1. `./data/.jwt_secret` — used by existing installs that previously derived the encryption key from `JWT_SECRET`. This ensures encrypted data stays readable after upgrading without any configuration change.
+2. `./data/.encryption_key` — auto-generated on first start for fresh installs and persisted to disk.
+
+<Note>
+  The auto-generated fallback is fine for getting started, but setting an explicit `ENCRYPTION_KEY` is recommended for production. It makes the key visible in your configuration and easier to back up.
+</Note>
+
+## Rotating the encryption key
+
+If you need to change the active encryption key — for example, after upgrading from an older version that used `JWT_SECRET` as the encryption source — use the migration script to re-encrypt all stored secrets under the new key.
+
+<Warning>
+  Run the migration script while the TREK container is **running but not serving traffic**, or stop the app first and run the script in a one-off container. Do not start normal app traffic until the migration completes successfully.
+</Warning>
+
+<Steps>
+  <Step title="Have your old and new keys ready">
+    - **Old key**: the value currently in use. If you were on an older version, this is the contents of `./data/.jwt_secret`.
+    - **New key**: a freshly generated key from `openssl rand -hex 32`.
+  </Step>
+  <Step title="Run the migration script">
+    ```bash
+    docker exec -it trek node --import tsx scripts/migrate-encryption.ts
+    ```
+
+    The script prompts you for the old key and the new key interactively. Input is not echoed to the terminal.
+  </Step>
+  <Step title="Review the output">
+    The script creates a timestamped database backup in `./data/` before making any changes. If anything fails, it exits with a non-zero code and the backup is left intact. No partial writes are committed.
+  </Step>
+  <Step title="Update your configuration">
+    Set the new key as `ENCRYPTION_KEY` in your `.env` file or Kubernetes secret, then restart TREK:
+
+    ```bash
+    docker compose up -d
+    ```
+  </Step>
+</Steps>
+
+## Upgrading from older versions
+
+Older versions of TREK derived the encryption key from `JWT_SECRET`. After upgrading:
+
+1. Your old JWT secret is stored in `./data/.jwt_secret`.
+2. If you do not set `ENCRYPTION_KEY`, TREK automatically reads `./data/.jwt_secret` and continues to decrypt existing data — no action needed.
+3. To migrate to a proper `ENCRYPTION_KEY`, follow the rotation procedure above and use the contents of `./data/.jwt_secret` as the "old key".

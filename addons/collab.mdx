@@ -1,0 +1,67 @@
+---
+title: "Collab"
+description: Chat with your travel group, share notes, create polls, and coordinate day activities.
+---
+
+Collab brings a real-time communication layer to each trip. It gives your travel group a shared space to chat, leave notes, run polls, and track who is joining each day's activities — all without leaving TREK.
+
+<Note>
+  Collab is a trip-scoped addon. Each trip has its own independent chat, notes, and polls. Content is visible to all members of that trip.
+</Note>
+
+## Group chat
+
+The chat tab provides a persistent message thread for each trip. Messages are paginated (100 per load) and support:
+
+- **Replies** — quote a specific message to keep conversations threaded
+- **Reactions** — add emoji reactions to any message
+- **Delete** — users can delete their own messages
+
+All messages sync in real time via WebSocket so every connected member sees new messages immediately.
+
+## Shared notes
+
+Collab notes are shared cards visible to all trip members. They are designed for information that everyone needs access to — packing tips, restaurant recommendations, itinerary summaries, or anything else worth highlighting.
+
+Each note supports:
+
+| Field | Description |
+|---|---|
+| Title | Required. Short label for the note. |
+| Content | Optional free-text body of the note. |
+| Category | Groups notes by type (e.g. `General`, `Ideas`, `To-do`). Defaults to `General`. |
+| Color | Hex color applied to the note card for visual grouping. |
+| Pinned | Pinned notes sort to the top of the list. |
+| Attachments | Files up to 50 MB each can be attached to a note. |
+| Website | Optional URL that renders as a link preview on the note card. |
+
+### Creating a note
+
+Open the **Notes** tab inside a trip's Collab section and click **New note**. Fill in at least the title, then optionally add content, a category, and a color before saving.
+
+### Pinning a note
+
+Open a note and toggle the pin option. Pinned notes appear at the top of the notes list ahead of unpinned ones, sorted by last updated time within each group.
+
+### Note categories and colors
+
+Categories are free-form strings — type any label that suits your workflow. Colors are hex values you choose from a color picker. Both are optional: uncategorized notes fall under `General` and unpicked colors default to indigo (`#6366f1`).
+
+<Tip>
+  Use colors to create a visual legend across your notes — for example, blue for logistics, green for restaurant picks, and yellow for things still to confirm.
+</Tip>
+
+## Polls
+
+Polls let the group make decisions collectively. Each poll has a question and at least two answer options. Polls support:
+
+- **Single choice** — each member picks one option
+- **Multiple choice** — members can select more than one option
+- **Deadline** — optional date after which no new votes are accepted
+- **Close** — the poll creator can close voting at any time
+
+Votes update in real time for all connected members.
+
+## Activity sign-ups
+
+The Collab addon tracks who is joining each day's activities. When browsing the day plan, members can mark themselves as attending or not attending individual activities. This gives the group a live view of headcounts without needing a separate spreadsheet or group message thread.

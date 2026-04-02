@@ -1,0 +1,140 @@
+---
+title: "Environment Variables"
+description: "Configure TREK's runtime behavior with environment variables."
+---
+
+Environment variables are set in your Docker Compose file or passed directly to `docker run`. Sensitive values (such as `ENCRYPTION_KEY`) should come from a `.env` file or a secrets manager — never hard-coded in a public repository.
+
+## Core
+
+<ParamField path="PORT" type="number" default="3000">
+  Port the server listens on.
+</ParamField>
+
+<ParamField path="NODE_ENV" type="string" default="production">
+  Runtime mode. Accepted values: `production`, `development`. Affects security defaults such as `COOKIE_SECURE`.
+</ParamField>
+
+<ParamField path="ENCRYPTION_KEY" type="string">
+  256-bit hex key used to encrypt stored secrets at rest: API keys, MFA secrets, SMTP credentials, and OIDC client secrets.
+
+  If unset, TREK falls back to `data/.jwt_secret` (for existing installs) or auto-generates and persists a key to `data/.encryption_key` (for fresh installs).
+
+  **Recommended:** generate with the command below and set it explicitly.
+
+  ```bash
+  openssl rand -hex 32
+  ```
+
+  Store the result in your `.env` file as `ENCRYPTION_KEY=<value>`.
+</ParamField>
+
+<ParamField path="TZ" type="string" default="UTC">
+  Timezone for server logs, reminders, and scheduled tasks. Accepts any IANA timezone string, for example `Europe/Berlin` or `America/New_York`.
+</ParamField>
+
+<ParamField path="LOG_LEVEL" type="string" default="info">
+  Log verbosity. `info` logs concise user actions; `debug` logs verbose admin-level details.
+</ParamField>
+
+<ParamField path="DEMO_MODE" type="boolean" default="false">
+  Enable demo mode. When `true`, all data is reset on an hourly schedule. Intended for public demo instances only.
+</ParamField>
+
+## Network and security
+
+<ParamField path="ALLOWED_ORIGINS" type="string">
+  Comma-separated list of allowed origins for CORS and outbound email notification links. Example: `https://trek.example.com,https://trek.internal.example.com`.
+
+  Defaults to same-origin if unset.
+</ParamField>
+
+<ParamField path="FORCE_HTTPS" type="boolean" default="false">
+  When `true`, redirects all incoming HTTP requests to HTTPS. Enable this when TREK is behind a TLS-terminating reverse proxy. See [Reverse Proxy](/configuration/reverse-proxy).
+</ParamField>
+
+<ParamField path="COOKIE_SECURE" type="boolean" default="true">
+  Controls the `Secure` flag on session cookies. Defaults to `true` in production.
+
+  Set to `false` only if you are accessing TREK over plain HTTP without a reverse proxy (for example, during local development via IP address). **Not recommended to disable in production.**
+</ParamField>
+
+<ParamField path="TRUST_PROXY" type="number" default="1">
+  Number of trusted reverse proxies for `X-Forwarded-For` client IP resolution. Set to `0` if TREK is exposed directly to the internet without a proxy.
+</ParamField>
+
+<ParamField path="ALLOW_INTERNAL_NETWORK" type="boolean" default="false">
+  Allow TREK to make outbound requests to private RFC-1918 IP addresses. Set to `true` if Immich or other integrated services are hosted on your local network.
+
+  Loopback addresses (`127.x`) and link-local/metadata addresses (`169.254.x`) are always blocked regardless of this setting.
+</ParamField>
+
+## OIDC / SSO
+
+These variables configure Single Sign-On via OpenID Connect. `APP_URL` is also required for OIDC to work correctly.
+
+<ParamField path="APP_URL" type="string">
+  Public base URL of your TREK instance — for example, `https://trek.example.com`. Required when OIDC is enabled. Must match the redirect URI registered with your identity provider.
+</ParamField>
+
+<ParamField path="OIDC_ISSUER" type="string">
+  OpenID Connect provider URL, for example `https://accounts.google.com` or `https://auth.example.com`. TREK auto-discovers the OIDC endpoints from `{OIDC_ISSUER}/.well-known/openid-configuration`.
+</ParamField>
+
+<ParamField path="OIDC_CLIENT_ID" type="string">
+  Client ID registered with your OIDC provider.
+</ParamField>
+
+<ParamField path="OIDC_CLIENT_SECRET" type="string">
+  Client secret registered with your OIDC provider. Stored encrypted at rest using `ENCRYPTION_KEY`.
+</ParamField>
+
+<ParamField path="OIDC_DISPLAY_NAME" type="string" default="SSO">
+  Label shown on the SSO login button in the TREK UI.
+</ParamField>
+
+<ParamField path="OIDC_ONLY" type="boolean" default="false">
+  When `true`, disables local username/password authentication entirely. Only OIDC login is available. The first user to log in via SSO becomes the admin.
+</ParamField>
+
+<ParamField path="OIDC_ADMIN_CLAIM" type="string" default="groups">
+  Name of the OIDC claim used to grant admin role. Works together with `OIDC_ADMIN_VALUE`. Supports both array and string claim values.
+</ParamField>
+
+<ParamField path="OIDC_ADMIN_VALUE" type="string">
+  The value of `OIDC_ADMIN_CLAIM` that grants a user the admin role. For example, if your provider sets `groups: ["app-trek-admins"]`, set this to `app-trek-admins`. Role is re-evaluated on every login.
+</ParamField>
+
+<ParamField path="OIDC_DISCOVERY_URL" type="string">
+  Override the auto-constructed OIDC discovery endpoint. Useful for providers that expose it at a non-standard path.
+
+  Example for Authentik: `https://auth.example.com/application/o/trek/.well-known/openid-configuration`
+</ParamField>
+
+## Notifications (optional)
+
+SMTP and webhook settings are primarily configured in **Admin Panel → Settings → Notifications**. The environment variables below act as overrides and take precedence over Admin Panel values.
+
+<ParamField path="SMTP_HOST" type="string">
+  SMTP server hostname for outbound email notifications (e.g. `smtp.example.com`). Required for email notifications.
+</ParamField>
+
+<ParamField path="SMTP_PORT" type="number">
+  SMTP server port. Use `465` for SSL or `587` for STARTTLS.
+</ParamField>
+
+<ParamField path="SMTP_USER" type="string">
+  SMTP authentication username.
+</ParamField>
+
+<ParamField path="SMTP_PASS" type="string">
+  SMTP authentication password. Stored encrypted at rest when configured via the Admin Panel.
+</ParamField>
+
+<ParamField path="SMTP_FROM" type="string">
+  The "from" email address for outbound notifications (e.g. `trek@example.com`).
+</ParamField>
+
+<ParamField path="NOTIFICATION_WEBHOOK_URL" type="string">
+  Webhook URL for outbound notifications. TREK posts a JSON payload to this URL for events such as trip invites and reminders. Can be configured in the Admin Panel instead.
+</ParamField>

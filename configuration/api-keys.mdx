@@ -1,0 +1,56 @@
+---
+title: "API Keys & Integrations"
+description: "Configure optional third-party API keys for enhanced features."
+---
+
+TREK integrates with several optional external services. API keys are configured by an admin in the **Admin Panel** after login — no per-user setup is required. Once set, keys are automatically shared with all users.
+
+All keys are encrypted at rest using your [`ENCRYPTION_KEY`](/configuration/environment-variables#encryption_key). If `ENCRYPTION_KEY` is not set, TREK derives the encryption key from `data/.jwt_secret`.
+
+## Google Maps (place search and photos)
+
+The Google Places API enables rich place search with photos, ratings, and opening hours. Without it, TREK falls back to OpenStreetMap, which is free and requires no API key.
+
+<Steps>
+  <Step title="Create a Google Cloud project">
+    Go to the [Google Cloud Console](https://console.cloud.google.com/) and create a new project, or select an existing one.
+  </Step>
+  <Step title="Enable the Places API (New)">
+    In the sidebar, go to **APIs & Services** → **Library**. Search for **Places API (New)** and click **Enable**.
+
+    Make sure you enable **Places API (New)** — not the legacy Places API.
+  </Step>
+  <Step title="Create an API key">
+    Go to **APIs & Services** → **Credentials** → **Create credentials** → **API key**.
+
+    Copy the generated key. Optionally, restrict it to the **Places API (New)** and your TREK server's IP or referrer for security.
+  </Step>
+  <Step title="Enter the key in the Admin Panel">
+    In TREK, open **Admin Panel** → **Settings** → **Google Maps** and paste your API key. Click **Save**. The key takes effect immediately for all users.
+  </Step>
+</Steps>
+
+## Open-Meteo (weather forecasts)
+
+<Note>
+  Open-Meteo requires no API key. TREK fetches 16-day weather forecasts automatically with no configuration needed. Historical climate averages are used as a fallback when forecast data is unavailable.
+</Note>
+
+Open-Meteo is a free, open-source weather API with no rate-limit concerns for self-hosted usage. There is nothing to configure — weather forecasts appear on trip day views automatically.
+
+## Immich (photo browsing)
+
+Immich is a self-hosted photo management app. When integrated with TREK, users can browse and attach photos from their Immich library to trips and places.
+
+The Immich integration is configured per-user in user settings, not in the Admin Panel. However, if your Immich instance is hosted on a private network, you must allow TREK to reach it:
+
+```yaml
+environment:
+  - ALLOW_INTERNAL_NETWORK=true
+```
+
+Set `ALLOW_INTERNAL_NETWORK=true` if your Immich server is on the same LAN or uses a private RFC-1918 IP address (for example, `192.168.x.x` or `10.x.x.x`). Without this, TREK blocks outbound requests to private IPs as a security measure.
+
+<Warning>
+  Loopback addresses (`127.x`) and link-local/metadata addresses (`169.254.x`) are always blocked regardless of `ALLOW_INTERNAL_NETWORK`. This protects against SSRF attacks targeting the host machine.
+</Warning>

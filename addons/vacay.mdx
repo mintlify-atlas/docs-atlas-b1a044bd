@@ -1,0 +1,76 @@
+---
+title: "Vacay"
+description: Plan your vacation days with a calendar view, public holidays, and carry-over tracking.
+---
+
+Vacay is a personal vacation day planner that gives you a shared calendar view of who is taking time off, when public and company holidays fall, and how many days you have remaining each year.
+
+## Accessing Vacay
+
+When the Vacay addon is enabled by your administrator, a **Vacay** entry appears in the main navigation menu. Click it to open the planner.
+
+## Calendar view
+
+The calendar displays the full year as a month-by-month grid. Each day can be toggled as a vacation day for you or, if you are fused with another user's plan, for any member of the shared plan.
+
+Vacation days, public holidays, and company holidays are each shown in distinct colors so the calendar remains easy to read at a glance.
+
+<Tip>
+  Use the year selector in the sidebar to switch between years. You can add future years to plan ahead, and the carry-over logic will automatically compute how many days roll over from one year to the next.
+</Tip>
+
+## Public holidays
+
+Vacay fetches public holiday data from the [Nager.Date API](https://date.nager.at), which covers **100+ countries**. Holidays are cached for 24 hours to keep the interface responsive.
+
+You can configure multiple holiday calendars per plan — for example, one for the country where your office is based and one for the country you are working from remotely. Each calendar supports:
+
+- **Region** — a country code (e.g. `DE`) or country-region code (e.g. `DE-BY` for Bavaria)
+- **Label** — an optional display name
+- **Color** — a hex color to identify the calendar in the view
+
+When public holidays are enabled, those dates are automatically excluded from vacation day counts.
+
+## Company holidays
+
+Administrators of a Vacay plan can mark individual dates as company holidays. Company holiday dates are shared across all members of the plan and are excluded from vacation day usage, the same as public holidays.
+
+## User fusion and live sync
+
+Vacay supports **user fusion** — two users can merge their plans so that each person's vacation days appear on the same shared calendar. This is useful for couples, teams, or housemates who want to coordinate time off in one view.
+
+To invite someone to your plan:
+
+<Steps>
+  <Step title="Open plan settings">
+    Click the settings icon in the Vacay sidebar.
+  </Step>
+  <Step title="Invite a user">
+    Search for a TREK user and send them an invite. They receive a notification and can accept or decline.
+  </Step>
+  <Step title="View the shared calendar">
+    Once accepted, both users' vacation days appear on the same calendar, color-coded by person.
+  </Step>
+</Steps>
+
+All changes sync in real time via WebSocket — if your partner toggles a day, your calendar updates immediately without a page refresh.
+
+<Note>
+  A user can only be fused with one plan at a time. Dissolving a fusion moves each user's vacation entries back to their own independent plan.
+</Note>
+
+## Carry-over tracking
+
+When carry-over is enabled, unused vacation days from one year are automatically added to the following year's allocation. The carry-over amount is recalculated whenever you view statistics for a year.
+
+Each user's yearly configuration includes:
+
+| Field | Description |
+|---|---|
+| Vacation days | The base number of days allocated for the year (default: 30) |
+| Carried over | Days rolled over from the previous year |
+| Total available | Sum of vacation days and carried over |
+| Used | Days marked as vacation in the calendar |
+| Remaining | Total available minus used |
+
+Carry-over can be disabled per plan if your organization does not allow rolling over unused days.

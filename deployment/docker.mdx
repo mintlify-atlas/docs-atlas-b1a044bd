@@ -1,0 +1,182 @@
+---
+title: "Docker & Docker Compose"
+description: Deploy TREK with Docker or Docker Compose for production use.
+---
+
+<Tabs>
+  <Tab title="Docker Run">
+    ## Quick start
+
+    The fastest way to get TREK running is a single `docker run` command. It generates an encryption key and mounts persistent volumes for your data and uploads.
+
+    ```bash
+    ENCRYPTION_KEY=$(openssl rand -hex 32) docker run -d -p 3000:3000 \
+      -e ENCRYPTION_KEY=$ENCRYPTION_KEY \
+      -v ./data:/app/data -v ./uploads:/app/uploads mauriceboe/trek
+    ```
+
+    TREK is now running at `http://localhost:3000`. The first user to register becomes the admin.
+
+    <Note>
+      Save the generated `ENCRYPTION_KEY` somewhere safe. If you lose it, you will lose access to all encrypted data stored in the database (API keys, MFA secrets, SMTP credentials, OIDC client secrets).
+    </Note>
+  </Tab>
+  <Tab title="Docker Compose">
+    ## Production deployment with Docker Compose
+
+    Docker Compose is the recommended approach for production. It makes restarts, updates, and configuration management easier.
+
+    <Steps>
+      <Step title="Create a .env file">
+        Generate an encryption key and save it alongside your other environment variables:
+
+        ```bash
+        echo "ENCRYPTION_KEY=$(openssl rand -hex 32)" > .env
+        ```
+
+        Add any additional variables you need:
+
+        ```bash
+        # .env
+        ENCRYPTION_KEY=<your-generated-key>
+        TZ=Europe/Berlin
+        APP_URL=https://trek.yourdomain.com
+        ALLOWED_ORIGINS=https://trek.yourdomain.com
+        ```
+      </Step>
+      <Step title="Create docker-compose.yml">
+        Create a `docker-compose.yml` file with the following content:
+
+        ```yaml
+        services:
+          app:
+            image: mauriceboe/trek:latest
+            container_name: trek
+            read_only: true
+            security_opt:
+              - no-new-privileges:true
+            cap_drop:
+              - ALL
+            cap_add:
+              - CHOWN
+              - SETUID
+              - SETGID
+            tmpfs:
+              - /tmp:noexec,nosuid,size=64m
+            ports:
+              - "3000:3000"
+            environment:
+              - NODE_ENV=production
+              - PORT=3000
+              - ENCRYPTION_KEY=${ENCRYPTION_KEY:-} # Recommended. Generate with: openssl rand -hex 32. If unset, falls back to data/.jwt_secret (existing installs) or auto-generates a key (fresh installs).
+              - TZ=${TZ:-UTC} # Timezone for logs, reminders and scheduled tasks (e.g. Europe/Berlin)
+              - LOG_LEVEL=${LOG_LEVEL:-info} # info = concise user actions; debug = verbose admin-level details
+              - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-} # Comma-separated origins for CORS and email notification links
+              - FORCE_HTTPS=true # Redirect HTTP to HTTPS when behind a TLS-terminating proxy
+        #     - COOKIE_SECURE=false # Uncomment if accessing over plain HTTP (no HTTPS). Not recommended for production.
+              - TRUST_PROXY=1 # Number of trusted proxies (for X-Forwarded-For / real client IP)
+              - ALLOW_INTERNAL_NETWORK=false # Set to true if Immich or other services are hosted on your local network (RFC-1918 IPs). Loopback and link-local addresses remain blocked regardless.
+        #      - OIDC_ISSUER=https://auth.example.com # OpenID Connect provider URL
+        #      - OIDC_CLIENT_ID=trek # OpenID Connect client ID
+        #      - OIDC_CLIENT_SECRET=supersecret # OpenID Connect client secret
+        #      - OIDC_DISPLAY_NAME=SSO # Label shown on the SSO login button
+        #      - OIDC_ONLY=false # Set true to disable local password auth entirely (SSO only)
+        #      - OIDC_DISCOVERY_URL= # Override the OIDC discovery endpoint for providers with non-standard paths (e.g. Authentik)
+            volumes:
+              - ./data:/app/data
+              - ./uploads:/app/uploads
+            restart: unless-stopped
+            healthcheck:
+              test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+              interval: 30s
+              timeout: 10s
+              retries: 3
+              start_period: 15s
+        ```
+      </Step>
+      <Step title="Start TREK">
+        ```bash
+        docker compose up -d
+        ```
+
+        TREK starts on port `3000`. The first user to register becomes the admin.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Volume mounts
+
+TREK requires two persistent volumes. Without them, your data will be lost when the container is removed or updated.
+
+| Host path   | Container path | Purpose                                                          |
+| ----------- | -------------- | ---------------------------------------------------------------- |
+| `./data`    | `/app/data`    | SQLite database, logs, backups, auto-generated secrets           |
+| `./uploads` | `/app/uploads` | User-uploaded files: photos, documents, trip covers, avatars     |
+
+<Warning>
+  Both `./data` and `./uploads` must be mounted as volumes. If either is missing, data written during the session will not survive a container restart or update.
+</Warning>
+
+## Health check
+
+TREK exposes a health endpoint at `/api/health`. Docker uses it to determine container readiness:
+
+```
+GET http://localhost:3000/api/health
+```
+
+The built-in `HEALTHCHECK` in the image polls this endpoint every 30 seconds with a 5-second timeout, starting after 15 seconds. Docker Compose overrides these with the values in `docker-compose.yml` (30s interval, 10s timeout, 3 retries).
+
+## Port mapping
+
+TREK listens on port `3000` inside the container. The default Compose file maps it to `3000` on the host:
+
+```yaml
+ports:
+  - "3000:3000"
+```
+
+To use a different host port, change the left side — for example `"8080:3000"` — and update `ALLOWED_ORIGINS` accordingly.
+
+## Security options
+
+The production `docker-compose.yml` applies several hardening options:
+
+| Option                          | Effect                                                                 |
+| ------------------------------- | ---------------------------------------------------------------------- |
+| `read_only: true`               | Mounts the container filesystem as read-only                           |
+| `no-new-privileges:true`        | Prevents privilege escalation via setuid/setgid binaries               |
+| `cap_drop: ALL`                 | Drops all Linux capabilities                                           |
+| `cap_add: CHOWN, SETUID, SETGID`| Re-adds only the capabilities needed to start as root and drop to `node` |
+| `tmpfs: /tmp:noexec,nosuid`     | Provides a writable `/tmp` without executable or setuid permissions    |
+
+## Building from source
+
+If you want to build the image yourself instead of pulling from Docker Hub:
+
+```bash
+git clone https://github.com/mauriceboe/TREK.git
+cd TREK
+docker build -t trek .
+```
+
+Then replace `mauriceboe/trek:latest` with `trek` in your `docker run` command or `docker-compose.yml`.
+
+## Unraid
+
+A community template is available for Unraid users. Search for **TREK** in the Unraid Community Applications, or add the template URL directly:
+
+```
+https://raw.githubusercontent.com/mauriceboe/TREK/main/unraid-template.xml
+```
+
+The template pre-configures the port mapping and volume paths (`/mnt/user/appdata/trek/data` and `/mnt/user/appdata/trek/uploads`).
+
+## Next steps
+
+For production deployments, place TREK behind a reverse proxy with HTTPS. See [Reverse Proxy](/configuration/reverse-proxy) for Nginx, Caddy, and Traefik examples.
+
+<Note>
+  TREK uses WebSockets for real-time sync. Your reverse proxy must support WebSocket upgrades on the `/ws` path.
+</Note>

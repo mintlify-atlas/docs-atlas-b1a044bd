@@ -1,0 +1,193 @@
+---
+title: "Installation"
+description: "Deploy TREK with Docker Compose for production."
+---
+
+This guide covers a production-ready TREK deployment using Docker Compose. For a quick local test, see the [Quick Start](/quickstart).
+
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) 24.0 or later
+- [Docker Compose](https://docs.docker.com/compose/install/) v2.0 or later (included with Docker Desktop)
+
+## Choose your deployment method
+
+<Tabs>
+  <Tab title="Docker Compose">
+    Docker Compose is the recommended approach for production. It gives you a declarative configuration file, restart policies, health checks, and security hardening out of the box.
+
+    <Steps>
+      <Step title="Create the compose file">
+        Create a `docker-compose.yml` file in a new directory:
+
+        ```yaml docker-compose.yml
+        services:
+          app:
+            image: mauriceboe/trek:latest
+            container_name: trek
+            read_only: true
+            security_opt:
+              - no-new-privileges:true
+            cap_drop:
+              - ALL
+            cap_add:
+              - CHOWN
+              - SETUID
+              - SETGID
+            tmpfs:
+              - /tmp:noexec,nosuid,size=64m
+            ports:
+              - "3000:3000"
+            environment:
+              - NODE_ENV=production
+              - PORT=3000
+              - ENCRYPTION_KEY=${ENCRYPTION_KEY:-} # Recommended. Generate with: openssl rand -hex 32. If unset, falls back to data/.jwt_secret (existing installs) or auto-generates a key (fresh installs).
+              - TZ=${TZ:-UTC} # Timezone for logs, reminders and scheduled tasks (e.g. Europe/Berlin)
+              - LOG_LEVEL=${LOG_LEVEL:-info} # info = concise user actions; debug = verbose admin-level details
+              - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-} # Comma-separated origins for CORS and email notification links
+              - FORCE_HTTPS=true # Redirect HTTP to HTTPS when behind a TLS-terminating proxy
+        #     - COOKIE_SECURE=false # Uncomment if accessing over plain HTTP (no HTTPS). Not recommended for production.
+              - TRUST_PROXY=1 # Number of trusted proxies (for X-Forwarded-For / real client IP)
+              - ALLOW_INTERNAL_NETWORK=false # Set to true if Immich or other services are hosted on your local network (RFC-1918 IPs). Loopback and link-local addresses remain blocked regardless.
+        #      - OIDC_ISSUER=https://auth.example.com # OpenID Connect provider URL
+        #      - OIDC_CLIENT_ID=trek # OpenID Connect client ID
+        #      - OIDC_CLIENT_SECRET=supersecret # OpenID Connect client secret
+        #      - OIDC_DISPLAY_NAME=SSO # Label shown on the SSO login button
+        #      - OIDC_ONLY=false # Set true to disable local password auth entirely (SSO only)
+        #      - OIDC_DISCOVERY_URL= # Override the OIDC discovery endpoint for providers with non-standard paths (e.g. Authentik)
+            volumes:
+              - ./data:/app/data
+              - ./uploads:/app/uploads
+            restart: unless-stopped
+            healthcheck:
+              test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+              interval: 30s
+              timeout: 10s
+              retries: 3
+              start_period: 15s
+        ```
+      </Step>
+      <Step title="Set up the environment file">
+        Generate an encryption key and create your `.env` file:
+
+        ```bash
+        echo "ENCRYPTION_KEY=$(openssl rand -hex 32)" > .env
+        ```
+
+        Open `.env` and add any additional variables you need:
+
+        ```bash .env
+        ENCRYPTION_KEY=<your-generated-key>
+        TZ=UTC
+        LOG_LEVEL=info
+        ALLOWED_ORIGINS=https://trek.yourdomain.com
+        APP_URL=https://trek.yourdomain.com
+        ```
+
+        <Warning>
+          Keep your `.env` file out of version control. Add it to `.gitignore` before committing your compose file. Losing `ENCRYPTION_KEY` means stored secrets (API keys, MFA seeds, OIDC client secrets) become unrecoverable.
+        </Warning>
+      </Step>
+      <Step title="Start the service">
+        ```bash
+        docker compose up -d
+        ```
+
+        TREK starts on port `3000`. Check that the container is healthy:
+
+        ```bash
+        docker compose ps
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Docker Run">
+    Use `docker run` for a quick single-command deployment. For production, the Docker Compose approach above is preferred.
+
+    ```bash
+    ENCRYPTION_KEY=$(openssl rand -hex 32) docker run -d \
+      --name trek \
+      -p 3000:3000 \
+      -e ENCRYPTION_KEY=$ENCRYPTION_KEY \
+      -v ./data:/app/data \
+      -v ./uploads:/app/uploads \
+      --restart unless-stopped \
+      mauriceboe/trek
+    ```
+
+    <Note>
+      Save the value of `ENCRYPTION_KEY` — you will need it if you ever recreate the container. Run `docker inspect trek --format '{{json .Config.Env}}'` to retrieve it later if needed.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Volume mounts
+
+TREK uses two persistent volumes. Both directories are created automatically on first start if they do not exist.
+
+| Mount | Container path | Contents |
+|-------|---------------|----------|
+| `./data` | `/app/data` | SQLite database (`travel.db`), encryption key, logs, and auto-backups |
+| `./uploads` | `/app/uploads` | User-uploaded files, trip covers, avatars, and photos |
+
+<Warning>
+  Never delete these directories without a backup. All trip data, files, and user accounts live here. Updates to the TREK image never modify these volumes.
+</Warning>
+
+## Health check
+
+The container exposes a health endpoint at `GET /api/health`. Docker polls it every 30 seconds with a 15-second start-up grace period:
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+A healthy instance returns HTTP `200`. You can also check container health status with:
+
+```bash
+docker inspect trek --format '{{.State.Health.Status}}'
+```
+
+## Updating
+
+Pull the latest image and restart the container. Your data volumes are untouched.
+
+<CodeGroup>
+
+```bash Docker Compose
+docker compose pull && docker compose up -d
+```
+
+```bash Docker Run
+docker pull mauriceboe/trek
+docker rm -f trek
+docker run -d --name trek -p 3000:3000 \
+  -e ENCRYPTION_KEY=$ENCRYPTION_KEY \
+  -v ./data:/app/data \
+  -v ./uploads:/app/uploads \
+  --restart unless-stopped \
+  mauriceboe/trek
+```
+
+</CodeGroup>
+
+<Tip>
+  Not sure which volume paths you used in your original `docker run` command? Run `docker inspect trek --format '{{json .Mounts}}'` before removing the container.
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Reverse proxy & HTTPS" icon="shield-halved" href="/configuration/reverse-proxy">
+    Put TREK behind Nginx or Caddy with TLS termination and WebSocket support.
+  </Card>
+  <Card title="Single Sign-On (OIDC)" icon="key" href="/configuration/sso-oidc">
+    Connect Google, Apple, Keycloak, Authentik, or any OIDC provider.
+  </Card>
+  <Card title="Environment variables" icon="gear" href="/configuration/environment-variables">
+    Full reference for all configuration options.
+  </Card>
+  <Card title="Backups" icon="database" href="/admin/backups">
+    Configure scheduled backups and retention from the admin panel.
+  </Card>
+</CardGroup>
